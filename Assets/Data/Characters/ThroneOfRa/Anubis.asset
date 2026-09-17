@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
+  m_Name: Anubis
+  m_EditorClassIdentifier:
+  characterName: 아누비스
+  flavorText: 자칼의 머리를 가진 죽음의 안내자. 영혼의 무게를 잰다.
+  portrait: {fileID: 0}
+  faction: 2
+  rarity: 4
+  stats:
+    physicalAttack: 0
+    magicAttack: 150
+    attackSpeed: 1.2
+    criticalMultiplier: 1.8
+    health: 1800
+    armor: 10
+    magicResist: 12
+  activeSkill:
+    skillName: 영혼의 저울질
+    description: 대상에게 고정 데미지와 함께 마나를 흡수한다.
+    skillType: 0
+    manaCost: 150
+    cooldown: 25
+    triggerChancePercent: 0
+  passiveSkill:
+    skillName:
+    description:
+    skillType: 1
+    manaCost: 0
+    cooldown: 0
+    triggerChancePercent: 0
+  fusionRecipe:
+    requiredCharacters: []
+    goldCost: 0
+    gemCost: 0

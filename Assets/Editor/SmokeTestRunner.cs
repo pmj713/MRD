@@ -64,6 +64,7 @@ namespace MRD.EditorTools
             }
 
             ok &= CheckSynergy(spartan, heracles, zeus);
+            ok &= CheckFullRoster();
 
             if (ok)
                 Debug.Log("[SmokeTest] 모든 검증 통과");
@@ -137,6 +138,51 @@ namespace MRD.EditorTools
             finally
             {
                 Object.DestroyImmediate(go);
+            }
+
+            return ok;
+        }
+
+        // 프로젝트에 있는 모든 CharacterData 에셋이 깨짐 없이 로드되고, 진영별 개수가 기대치와 맞는지 검증한다.
+        private static bool CheckFullRoster()
+        {
+            bool ok = true;
+            var guids = AssetDatabase.FindAssets("t:CharacterData");
+            var countByFaction = new Dictionary<Faction, int>();
+
+            foreach (var guid in guids)
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var data = AssetDatabase.LoadAssetAtPath<CharacterData>(path);
+                if (data == null)
+                {
+                    Debug.LogError($"[SmokeTest] 로드 실패: {path}");
+                    ok = false;
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(data.characterName))
+                {
+                    Debug.LogError($"[SmokeTest] characterName 비어있음: {path}");
+                    ok = false;
+                }
+
+                countByFaction.TryGetValue(data.faction, out var current);
+                countByFaction[data.faction] = current + 1;
+            }
+
+            Debug.Log($"[SmokeTest] 전체 CharacterData 에셋 수: {guids.Length}");
+            foreach (var kv in countByFaction)
+                Debug.Log($"[SmokeTest]  - {kv.Key}: {kv.Value}개");
+
+            ok &= LogAndCheck("전체 에셋 40개(기존 3개 + 신규 40개 예상)", guids.Length == 43, guids.Length.ToString());
+
+            // 올림포스는 아직 테스트용 3종(노말/레어/히든)만 있고, 나머지 5개 진영은 8종 풀 로스터여야 한다.
+            foreach (Faction faction in System.Enum.GetValues(typeof(Faction)))
+            {
+                int expected = faction == Faction.Olympus ? 3 : 8;
+                int actual = countByFaction.GetValueOrDefault(faction);
+                ok &= LogAndCheck($"{faction} 진영 유닛 수 ({expected}개 기대)", actual == expected, actual.ToString());
             }
 
             return ok;
