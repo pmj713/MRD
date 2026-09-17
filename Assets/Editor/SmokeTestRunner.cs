@@ -6,6 +6,7 @@ using MRD.Battle;
 using MRD.Synergy;
 using MRD.Wave;
 using MRD.Game;
+using UnityEditor.SceneManagement;
 
 namespace MRD.EditorTools
 {
@@ -72,6 +73,7 @@ namespace MRD.EditorTools
             ok &= CheckBattleUnitAttacksEnemyUnit(heracles);
             ok &= CheckPlacementGrid(spartan, heracles, zeus);
             ok &= CheckGameManager(spartan, heracles, zeus);
+            ok &= CheckSceneSetup();
 
             if (ok)
                 Debug.Log("[SmokeTest] 모든 검증 통과");
@@ -806,6 +808,25 @@ namespace MRD.EditorTools
                 Object.DestroyImmediate(go);
                 Object.DestroyImmediate(config);
                 Object.DestroyImmediate(fastMonster);
+            }
+
+            return ok;
+        }
+
+        // SampleScene.unity에 추가한 GameBootstrap 오브젝트가 실제로 씬에 존재하고
+        // 스크립트 참조가 깨지지 않았는지(= 손으로 수정한 씬 YAML이 유효한지) 확인한다.
+        private static bool CheckSceneSetup()
+        {
+            var scene = EditorSceneManager.OpenScene("Assets/Scenes/SampleScene.unity", OpenSceneMode.Single);
+            bool ok = LogAndCheck("SampleScene 로드 성공", scene.IsValid(), scene.IsValid().ToString());
+
+            var bootstrapGo = GameObject.Find("GameBootstrap");
+            ok &= LogAndCheck("GameBootstrap 오브젝트 존재", bootstrapGo != null, (bootstrapGo != null).ToString());
+
+            if (bootstrapGo != null)
+            {
+                var bootstrap = bootstrapGo.GetComponent<GameBootstrap>();
+                ok &= LogAndCheck("GameBootstrap 컴포넌트 스크립트 참조 정상", bootstrap != null, (bootstrap != null).ToString());
             }
 
             return ok;
