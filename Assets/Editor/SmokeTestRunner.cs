@@ -5,6 +5,7 @@ using MRD.Data;
 using MRD.Battle;
 using MRD.Synergy;
 using MRD.Wave;
+using MRD.Game;
 
 namespace MRD.EditorTools
 {
@@ -70,6 +71,7 @@ namespace MRD.EditorTools
             ok &= CheckWaveSpawner();
             ok &= CheckBattleUnitAttacksEnemyUnit(heracles);
             ok &= CheckPlacementGrid(spartan, heracles, zeus);
+            ok &= CheckGameManager(spartan, heracles, zeus);
 
             if (ok)
                 Debug.Log("[SmokeTest] 모든 검증 통과");
@@ -631,6 +633,179 @@ namespace MRD.EditorTools
                 Object.DestroyImmediate(managerGo);
                 Object.DestroyImmediate(synergyGo);
                 Object.DestroyImmediate(gridGo);
+            }
+
+            return ok;
+        }
+
+        // GameManager가 배치/시너지/전투/웨이브/골드/승패 판정을 실제로 하나로 엮어 돌리는지 검증한다.
+        private static bool CheckGameManager(CharacterData spartanData, CharacterData heraclesData, CharacterData zeusData)
+        {
+            var synergyData = AssetDatabase.LoadAssetAtPath<FactionSynergyData>("Assets/Data/Synergy/OlympusSynergy.asset");
+            var lineMonster = AssetDatabase.LoadAssetAtPath<MonsterData>("Assets/Data/Monsters/LineMonster_Basic.asset");
+
+            var fastConfig = ScriptableObject.CreateInstance<WaveConfig>();
+            fastConfig.totalRounds = 3;
+            fastConfig.monstersPerRound = 1;
+            fastConfig.earlyRoundThreshold = 0;
+            fastConfig.earlyRoundDuration = 100f;
+            fastConfig.lateRoundDuration = 100f;
+            fastConfig.leftBossInterval = 0;
+            fastConfig.rightBossOffset = 0;
+            fastConfig.mandatoryClearRounds = new int[0];
+            fastConfig.startingDeathCount = 9999;
+            fastConfig.deathCountDecreaseEveryRounds = 0;
+
+            bool ok = CheckGameManagerPlacementAndKillReward(spartanData, heraclesData, zeusData, synergyData, lineMonster, fastConfig);
+            ok &= CheckGameManagerVictory(lineMonster, synergyData);
+            ok &= CheckGameManagerDefeat(lineMonster, synergyData);
+
+            Object.DestroyImmediate(fastConfig);
+            return ok;
+        }
+
+        private static bool CheckGameManagerPlacementAndKillReward(CharacterData spartanData, CharacterData heraclesData,
+            CharacterData zeusData, FactionSynergyData synergyData, MonsterData lineMonster, WaveConfig fastConfig)
+        {
+            var go = new GameObject("SmokeTest_GameManager_Main");
+            bool ok;
+            try
+            {
+                var game = go.AddComponent<GameManager>();
+                game.Configure(3, 3, fastConfig, lineMonster, null, null, new List<FactionSynergyData> { synergyData });
+
+                // 웨이브 시작 전에도 배치가 가능해야 하고, 시너지가 바로 반영되어야 한다.
+                game.PlaceUnit(0, 0, spartanData, out var spartanUnit);
+                game.PlaceUnit(1, 0, heraclesData, out var heraclesUnit);
+                game.PlaceUnit(2, 0, zeusData, out var zeusUnit);
+
+                ok = ApproxLog("웨이브 시작 전 배치만으로도 3체 시너지 반영", spartanUnit.EffectiveStats.attackSpeed, spartanData.stats.attackSpeed * 1.15f);
+
+                int goldSeen = -1;
+                game.OnGoldChanged += g => goldSeen = g;
+
+                EnemyUnit spawnedEnemy = null;
+                game.WaveSpawner.OnMonsterSpawned += e => spawnedEnemy = e;
+
+                game.StartGame();
+                game.WaveSpawner.Tick(60f); // monstersPerRound=1, earlyRoundDuration=100 -> spawnInterval=100. 넉넉히 진행만 시켜 스폰 대기
+
+                // monstersPerRound가 1이면 spawnInterval == 라운드 길이라 라운드가 끝나야 스폰된다.
+                // 그래서 라운드가 끝나는 시점까지 마저 진행시킨다.
+                for (int i = 0; i < 50 && spawnedEnemy == null; i++)
+                    game.WaveSpawner.Tick(1f);
+
+                ok &= LogAndCheck("게임 시작 후 몬스터 스폰됨", spawnedEnemy != null, (spawnedEnemy != null).ToString());
+
+                if (spawnedEnemy != null)
+                {
+                    for (int i = 0; i < 20 && !spawnedEnemy.IsDead; i++)
+                        game.CombatManager.ProcessAttack(heraclesUnit);
+
+                    ok &= LogAndCheck("배치된 아군이 스폰된 몬스터를 처치함", spawnedEnemy.IsDead, spawnedEnemy.IsDead.ToString());
+                    ok &= LogAndCheck("처치 보상으로 골드 지급됨", game.Gold == lineMonster.goldReward, game.Gold.ToString());
+                    ok &= LogAndCheck("OnGoldChanged 이벤트 발생", goldSeen == lineMonster.goldReward, goldSeen.ToString());
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+
+            return ok;
+        }
+
+        private static bool CheckGameManagerVictory(MonsterData lineMonster, FactionSynergyData synergyData)
+        {
+            var config = ScriptableObject.CreateInstance<WaveConfig>();
+            config.totalRounds = 2;
+            config.monstersPerRound = 1;
+            config.earlyRoundThreshold = 0;
+            config.earlyRoundDuration = 1f;
+            config.lateRoundDuration = 1f;
+            config.leftBossInterval = 0;
+            config.rightBossOffset = 0;
+            config.mandatoryClearRounds = new int[0];
+            config.startingDeathCount = 9999;
+            config.deathCountDecreaseEveryRounds = 0;
+
+            var fastMonster = ScriptableObject.CreateInstance<MonsterData>();
+            fastMonster.monsterName = "빠른 마수";
+            fastMonster.baseHealth = 10;
+            fastMonster.moveSpeed = 200f;
+
+            var go = new GameObject("SmokeTest_GameManager_Victory");
+            bool ok;
+            try
+            {
+                var game = go.AddComponent<GameManager>();
+                game.Configure(3, 3, config, fastMonster, null, null, new List<FactionSynergyData> { synergyData });
+
+                bool? victoryResult = null;
+                string reason = null;
+                game.OnGameEnded += (victory, r) => { victoryResult = victory; reason = r; };
+
+                game.StartGame();
+                for (int i = 0; i < 500 && !game.IsGameOver; i++)
+                    game.WaveSpawner.Tick(0.1f);
+
+                ok = LogAndCheck("전체 라운드 클리어 시 게임 종료", game.IsGameOver, game.IsGameOver.ToString());
+                ok &= LogAndCheck("승리로 판정됨", game.IsVictory, game.IsVictory.ToString());
+                ok &= LogAndCheck("OnGameEnded(true, ...)로 발생", victoryResult == true, (victoryResult ?? false).ToString());
+                Debug.Log($"[SmokeTest] 승리 사유: {reason}");
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                Object.DestroyImmediate(config);
+                Object.DestroyImmediate(fastMonster);
+            }
+
+            return ok;
+        }
+
+        private static bool CheckGameManagerDefeat(MonsterData lineMonster, FactionSynergyData synergyData)
+        {
+            var config = ScriptableObject.CreateInstance<WaveConfig>();
+            config.totalRounds = 20;
+            config.monstersPerRound = 1;
+            config.earlyRoundThreshold = 0;
+            config.earlyRoundDuration = 1f;
+            config.lateRoundDuration = 1f;
+            config.leftBossInterval = 0;
+            config.rightBossOffset = 0;
+            config.mandatoryClearRounds = new int[0];
+            config.startingDeathCount = 2;
+            config.deathCountDecreaseEveryRounds = 0;
+
+            var fastMonster = ScriptableObject.CreateInstance<MonsterData>();
+            fastMonster.monsterName = "빠른 마수";
+            fastMonster.baseHealth = 10;
+            fastMonster.moveSpeed = 200f;
+
+            var go = new GameObject("SmokeTest_GameManager_Defeat");
+            bool ok;
+            try
+            {
+                var game = go.AddComponent<GameManager>();
+                game.Configure(3, 3, config, fastMonster, null, null, new List<FactionSynergyData> { synergyData });
+
+                bool? victoryResult = null;
+                game.OnGameEnded += (victory, _) => victoryResult = victory;
+
+                game.StartGame(); // 아무도 배치하지 않아서 몬스터가 전부 라인을 통과하게 됨
+                for (int i = 0; i < 500 && !game.IsGameOver; i++)
+                    game.WaveSpawner.Tick(0.1f);
+
+                ok = LogAndCheck("데스카운트 소진 시 게임 종료", game.IsGameOver, game.IsGameOver.ToString());
+                ok &= LogAndCheck("패배로 판정됨", !game.IsVictory, game.IsVictory.ToString());
+                ok &= LogAndCheck("OnGameEnded(false, ...)로 발생", victoryResult == false, (victoryResult ?? true).ToString());
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                Object.DestroyImmediate(config);
+                Object.DestroyImmediate(fastMonster);
             }
 
             return ok;

@@ -69,7 +69,12 @@ namespace MRD.Battle
             unit.OnDeath -= HandleAnyUnitDeath;
             combatManager?.UnregisterAlly(unit);
             OnUnitRemoved?.Invoke(x, y, unit);
-            Destroy(unit.gameObject);
+
+            if (Application.isPlaying)
+                Destroy(unit.gameObject);
+            else
+                DestroyImmediate(unit.gameObject); // 에디터(플레이 모드 아님)에서 호출되는 경우 대비
+
             return true;
         }
 

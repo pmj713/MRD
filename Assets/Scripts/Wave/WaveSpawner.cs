@@ -27,6 +27,7 @@ namespace MRD.Wave
 
         public event Action<int, bool, bool> OnRoundStarted; // round, isLeftBoss, isRightBoss
         public event Action<EnemyUnit> OnMonsterSpawned;
+        public event Action<EnemyUnit> OnMonsterKilled; // 라인 통과가 아니라 실제로 처치된 경우 (보상 지급용)
         public event Action<int> OnDeathCountChanged;
         public event Action<string> OnGameOver;
         public event Action OnAllRoundsCleared;
@@ -179,6 +180,7 @@ namespace MRD.Wave
         private void HandleMonsterDeath(EnemyUnit monster)
         {
             RemoveFromActive(monster);
+            OnMonsterKilled?.Invoke(monster);
         }
 
         private void HandleMonsterReachedEnd(EnemyUnit monster)

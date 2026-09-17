@@ -30,6 +30,9 @@ ExportedObj/
 *.unityproj
 *.sln
 *.slnx
+
+# 헤드리스 스모크 테스트용 임시 로그
+/*.log
 *.suo
 *.tmp
 *.user
