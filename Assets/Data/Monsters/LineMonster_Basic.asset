@@ -15,6 +15,7 @@ MonoBehaviour:
   monsterName: 하급 마수
   baseHealth: 100
   baseArmor: 0
+  baseMagicResist: 0
   healthGrowthPerRound: 1.05
   moveSpeed: 10
   goldReward: 5

@@ -68,6 +68,7 @@ namespace MRD.EditorTools
             ok &= CheckFullRoster();
             ok &= CheckCombat(spartan, heracles, zeus);
             ok &= CheckWaveSpawner();
+            ok &= CheckBattleUnitAttacksEnemyUnit(heracles);
 
             if (ok)
                 Debug.Log("[SmokeTest] 모든 검증 통과");
@@ -213,8 +214,8 @@ namespace MRD.EditorTools
                 bool deathFired = false;
                 spartanUnit.OnDeath += _ => deathFired = true;
 
-                manager.RegisterUnit(heraclesUnit, Team.Ally);
-                manager.RegisterUnit(spartanUnit, Team.Enemy);
+                manager.RegisterAlly(heraclesUnit);
+                manager.RegisterEnemyTarget(spartanUnit);
 
                 // 평타 1회: 스파르타 방패병은 방어력 0이라 데미지가 [무크리, 크리] 범위 안에 들어야 한다.
                 float healthBefore = spartanUnit.CurrentHealth;
@@ -252,8 +253,8 @@ namespace MRD.EditorTools
                 var dummyUnit = dummyGo.AddComponent<BattleUnit>();
                 dummyUnit.Initialize(zeusData, new StatModifier { healthPercent = 1000000f });
 
-                manager.RegisterUnit(zeusUnit, Team.Ally);
-                manager.RegisterUnit(dummyUnit, Team.Enemy);
+                manager.RegisterAlly(zeusUnit);
+                manager.RegisterEnemyTarget(dummyUnit);
 
                 float mitPhys = 100f / (100f + dummyUnit.EffectiveStats.armor);
                 float mitMagic = 100f / (100f + dummyUnit.EffectiveStats.magicResist);
@@ -455,6 +456,115 @@ namespace MRD.EditorTools
             finally
             {
                 Object.DestroyImmediate(go);
+                Object.DestroyImmediate(config);
+            }
+
+            return ok;
+        }
+
+        // BattleUnit(아군)이 CombatManager를 통해 실제 EnemyUnit(웨이브 몬스터)을 공격하는지 검증한다.
+        private static bool CheckBattleUnitAttacksEnemyUnit(CharacterData heraclesData)
+        {
+            bool ok = true;
+            var lineMonster = AssetDatabase.LoadAssetAtPath<MonsterData>("Assets/Data/Monsters/LineMonster_Basic.asset");
+
+            var managerGo = new GameObject("SmokeTest_BvE_CombatManager");
+            var allyGo = new GameObject("SmokeTest_BvE_Ally");
+            var enemyGo = new GameObject("SmokeTest_BvE_Enemy");
+
+            try
+            {
+                var manager = managerGo.AddComponent<CombatManager>();
+
+                var heraclesUnit = allyGo.AddComponent<BattleUnit>();
+                heraclesUnit.Initialize(heraclesData);
+                manager.RegisterAlly(heraclesUnit);
+
+                var enemy = enemyGo.AddComponent<EnemyUnit>();
+                enemy.Initialize(lineMonster, round: 1);
+                manager.RegisterEnemyTarget(enemy);
+
+                // 헤라클레스가 평타로 실제 EnemyUnit의 체력을 깎아야 한다 (몬스터 방어력 0 -> 감쇄 없음).
+                float healthBefore = enemy.CurrentHealth;
+                manager.ProcessAttack(heraclesUnit);
+                float damage = healthBefore - enemy.CurrentHealth;
+                float minDamage = heraclesData.stats.physicalAttack;
+                float maxDamage = heraclesData.stats.physicalAttack * heraclesData.stats.criticalMultiplier;
+                ok &= LogAndCheck("BattleUnit -> EnemyUnit 평타 데미지 범위 내",
+                    damage >= minDamage - 0.01f && damage <= maxDamage + 0.01f, damage.ToString());
+
+                // 몬스터가 라인 끝까지 도달하면(HasReachedEnd) 더 이상 유효 타겟이 아니어야 한다.
+                enemy.Tick(100f); // moveSpeed=10, 진행도 100 -> 100초 안 걸리고 즉시 도달
+                ok &= LogAndCheck("도착한 몬스터는 IsTargetable == false", !enemy.IsTargetable, enemy.IsTargetable.ToString());
+
+                float healthBeforeSecond = enemy.CurrentHealth;
+                manager.ProcessAttack(heraclesUnit);
+                ok &= ApproxLog("도착한 몬스터는 더 이상 공격받지 않음", enemy.CurrentHealth, healthBeforeSecond);
+            }
+            finally
+            {
+                Object.DestroyImmediate(managerGo);
+                Object.DestroyImmediate(allyGo);
+                Object.DestroyImmediate(enemyGo);
+            }
+
+            ok &= CheckWaveSpawnerAutoRegistersWithCombatManager(heraclesData, lineMonster);
+
+            return ok;
+        }
+
+        // WaveSpawner가 스폰한 몬스터를 CombatManager에 자동 등록해서, 실제로 공격 가능한지 확인한다.
+        private static bool CheckWaveSpawnerAutoRegistersWithCombatManager(CharacterData heraclesData, MonsterData lineMonster)
+        {
+            var config = ScriptableObject.CreateInstance<WaveConfig>();
+            config.totalRounds = 3;
+            config.monstersPerRound = 2; // spawnInterval(=duration/개수)이 라운드 길이보다 짧아야 라운드 도중 스폰됨
+            config.earlyRoundThreshold = 0;
+            config.earlyRoundDuration = 100f; // 라운드가 끝나기 전에 직접 공격을 시도할 시간을 넉넉히 확보
+            config.lateRoundDuration = 100f;
+            config.leftBossInterval = 0;
+            config.rightBossOffset = 0;
+            config.mandatoryClearRounds = new int[0];
+            config.startingDeathCount = 9999;
+            config.deathCountDecreaseEveryRounds = 0;
+
+            var managerGo = new GameObject("SmokeTest_WaveIntegration_CombatManager");
+            var allyGo = new GameObject("SmokeTest_WaveIntegration_Ally");
+            var spawnerGo = new GameObject("SmokeTest_WaveIntegration_Spawner");
+
+            bool ok;
+            try
+            {
+                var manager = managerGo.AddComponent<CombatManager>();
+                var heraclesUnit = allyGo.AddComponent<BattleUnit>();
+                heraclesUnit.Initialize(heraclesData);
+                manager.RegisterAlly(heraclesUnit);
+
+                var spawner = spawnerGo.AddComponent<WaveSpawner>();
+                spawner.Configure(config, lineMonster, null, null);
+                spawner.SetCombatManager(manager);
+
+                EnemyUnit spawnedEnemy = null;
+                spawner.OnMonsterSpawned += e => spawnedEnemy = e;
+
+                spawner.StartRun();
+                spawner.Tick(60f); // spawnInterval=50초 지점에서 첫 몬스터가 스폰되도록 시간 진행 (라운드는 아직 안 끝남)
+
+                ok = LogAndCheck("웨이브 스폰 이벤트 발생", spawnedEnemy != null, (spawnedEnemy != null).ToString());
+
+                if (spawnedEnemy != null)
+                {
+                    float before = spawnedEnemy.CurrentHealth;
+                    manager.ProcessAttack(heraclesUnit);
+                    float damage = before - spawnedEnemy.CurrentHealth;
+                    ok &= LogAndCheck("WaveSpawner가 자동 등록한 몬스터를 실제로 공격함", damage > 0f, damage.ToString());
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(managerGo);
+                Object.DestroyImmediate(allyGo);
+                Object.DestroyImmediate(spawnerGo);
                 Object.DestroyImmediate(config);
             }
 

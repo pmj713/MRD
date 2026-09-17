@@ -15,6 +15,7 @@ MonoBehaviour:
   monsterName: 혼돈의 파수꾼
   baseHealth: 3000
   baseArmor: 15
+  baseMagicResist: 20
   healthGrowthPerRound: 1.05
   moveSpeed: 5
   goldReward: 150

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using MRD.Battle;
 
 namespace MRD.Wave
 {
@@ -17,6 +18,7 @@ namespace MRD.Wave
         [SerializeField] private MonsterData lineMonsterTemplate;
         [SerializeField] private MonsterData leftBossTemplate;
         [SerializeField] private MonsterData rightBossTemplate;
+        [SerializeField] private CombatManager combatManager; // 지정하면 스폰되는 몬스터가 자동으로 공격 대상으로 등록된다
 
         public int CurrentRound { get; private set; }
         public int RemainingDeathCount { get; private set; }
@@ -46,6 +48,8 @@ namespace MRD.Wave
             leftBossTemplate = leftBoss;
             rightBossTemplate = rightBoss;
         }
+
+        public void SetCombatManager(CombatManager manager) => combatManager = manager;
 
         public void StartRun()
         {
@@ -105,6 +109,7 @@ namespace MRD.Wave
 
             _activeMonsters.Add(enemy);
             _currentRoundMonsters.Add(enemy);
+            combatManager?.RegisterEnemyTarget(enemy);
             OnMonsterSpawned?.Invoke(enemy);
         }
 
@@ -192,6 +197,7 @@ namespace MRD.Wave
             monster.OnDeath -= HandleMonsterDeath;
             monster.OnReachedEnd -= HandleMonsterReachedEnd;
             _activeMonsters.Remove(monster);
+            combatManager?.UnregisterEnemyTarget(monster);
         }
 
         private void TriggerGameOver(string reason)

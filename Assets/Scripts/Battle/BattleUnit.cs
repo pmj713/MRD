@@ -9,7 +9,7 @@ namespace MRD.Battle
     /// CharacterData(고정 수치)에 진영 시너지 보너스를 반영한 실제 전투 스탯과
     /// 현재 체력/마나/쿨타임을 관리한다.
     /// </summary>
-    public class BattleUnit : MonoBehaviour
+    public class BattleUnit : MonoBehaviour, IDamageable
     {
         public CharacterData Source { get; private set; }
         public CharacterStats EffectiveStats { get; private set; }
@@ -17,6 +17,7 @@ namespace MRD.Battle
         public float CurrentHealth { get; private set; }
         public float CurrentMana { get; private set; }
         public bool IsDead => CurrentHealth <= 0f;
+        public bool IsTargetable => !IsDead;
 
         /// <summary>
         /// 공격 타이머가 한 번 채워질 때마다 발생. 실제 데미지 판정/투사체 생성은

@@ -9,7 +9,7 @@ namespace MRD.Wave
     /// 아직 씬에 실제 이동 경로가 없어서, 이동은 0(도착)~100(스폰 지점) 진행도 값으로 추상화했다.
     /// 진행도가 0이 되면 OnReachedEnd(라인 통과 실패), 체력이 0이 되면 OnDeath가 발생한다.
     /// </summary>
-    public class EnemyUnit : MonoBehaviour
+    public class EnemyUnit : MonoBehaviour, IDamageable
     {
         private const float FullProgress = 100f;
 
@@ -19,6 +19,7 @@ namespace MRD.Wave
         public float RemainingProgress { get; private set; }
         public bool IsDead => CurrentHealth <= 0f;
         public bool HasReachedEnd { get; private set; }
+        public bool IsTargetable => !IsDead && !HasReachedEnd;
 
         public event Action<EnemyUnit> OnDeath;
         public event Action<EnemyUnit> OnReachedEnd;
@@ -50,7 +51,10 @@ namespace MRD.Wave
         /// <summary>물리 데미지. 몬스터의 방어력에 따라 감쇄된다.</summary>
         public void TakePhysicalDamage(float rawDamage) => ApplyDamage(rawDamage * CombatMath.CalculateMitigation(Source.baseArmor));
 
-        /// <summary>방어력을 무시하는 데미지.</summary>
+        /// <summary>마법 데미지. 몬스터의 마법저항에 따라 감쇄된다.</summary>
+        public void TakeMagicDamage(float rawDamage) => ApplyDamage(rawDamage * CombatMath.CalculateMitigation(Source.baseMagicResist));
+
+        /// <summary>방어력/마법저항을 무시하는 데미지.</summary>
         public void TakeTrueDamage(float rawDamage) => ApplyDamage(rawDamage);
 
         private void ApplyDamage(float amount)
