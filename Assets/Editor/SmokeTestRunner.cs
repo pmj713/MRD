@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using MRD.Data;
 using MRD.Battle;
+using MRD.Synergy;
 
 namespace MRD.EditorTools
 {
@@ -61,6 +63,8 @@ namespace MRD.EditorTools
                 Object.DestroyImmediate(go);
             }
 
+            ok &= CheckSynergy(spartan, heracles, zeus);
+
             if (ok)
                 Debug.Log("[SmokeTest] 모든 검증 통과");
             else
@@ -90,6 +94,52 @@ namespace MRD.EditorTools
         {
             Debug.Log($"[SmokeTest] {label}: {detail}, pass={pass}");
             return pass;
+        }
+
+        // SynergyManager가 배치 인원수에 따라 올바른 진영 시너지 단계를 계산하는지 엔드투엔드로 검증한다.
+        private static bool CheckSynergy(CharacterData a, CharacterData b, CharacterData c)
+        {
+            var synergyData = AssetDatabase.LoadAssetAtPath<FactionSynergyData>("Assets/Data/Synergy/OlympusSynergy.asset");
+            if (synergyData == null)
+            {
+                Debug.LogError("[SmokeTest] OlympusSynergy 에셋 로드 실패");
+                return false;
+            }
+
+            var go = new GameObject("SmokeTest_SynergyManager");
+            bool ok;
+            try
+            {
+                var manager = go.AddComponent<SynergyManager>();
+                manager.SetFactionSynergies(new List<FactionSynergyData> { synergyData });
+
+                // 2체: 어떤 단계도 달성하지 못해야 한다.
+                var twoUnits = new List<CharacterData> { a, b };
+                var resultTwo = manager.Evaluate(twoUnits);
+                ok = LogAndCheck("2체 배치 시 시너지 없음", !resultTwo.ContainsKey(Faction.Olympus), resultTwo.ContainsKey(Faction.Olympus).ToString());
+
+                // 3체: 1단계(공격속도 +15%)만 달성해야 한다.
+                var threeUnits = new List<CharacterData> { a, b, c };
+                var resultThree = manager.Evaluate(threeUnits);
+                bool hasThreeTier = resultThree.TryGetValue(Faction.Olympus, out var bonusThree);
+                ok &= LogAndCheck("3체 배치 시 시너지 발동", hasThreeTier, hasThreeTier.ToString());
+                ok &= ApproxLog("3체 시너지 attackSpeedPercent", bonusThree.attackSpeedPercent, 15f);
+                ok &= ApproxLog("3체 시너지 physicalAttackPercent(미달성, 0이어야 함)", bonusThree.physicalAttackPercent, 0f);
+
+                // 6체: 2단계(공격력 +25%)로 갱신되어야 한다 (1단계와 중첩되지 않음).
+                var sixUnits = new List<CharacterData> { a, a, b, b, c, c };
+                var resultSix = manager.Evaluate(sixUnits);
+                bool hasSixTier = resultSix.TryGetValue(Faction.Olympus, out var bonusSix);
+                ok &= LogAndCheck("6체 배치 시 상위 시너지로 갱신", hasSixTier, hasSixTier.ToString());
+                ok &= ApproxLog("6체 시너지 physicalAttackPercent", bonusSix.physicalAttackPercent, 25f);
+                ok &= ApproxLog("6체 시너지 attackSpeedPercent(1단계와 중첩되지 않아야 함)", bonusSix.attackSpeedPercent, 0f);
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+
+            return ok;
         }
     }
 }

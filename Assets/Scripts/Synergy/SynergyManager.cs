@@ -14,6 +14,15 @@ namespace MRD.Synergy
         private List<FactionSynergyData> factionSynergies = new List<FactionSynergyData>();
 
         /// <summary>
+        /// 인스펙터 대신 코드로(부트스트랩, 테스트 등) 진영 시너지 표를 등록할 때 사용한다.
+        /// </summary>
+        public void SetFactionSynergies(IEnumerable<FactionSynergyData> data)
+        {
+            factionSynergies.Clear();
+            factionSynergies.AddRange(data);
+        }
+
+        /// <summary>
         /// 진영별로 달성한 가장 높은 시너지 단계의 보너스만 반환한다. (단계는 누적되지 않음)
         /// </summary>
         public Dictionary<Faction, StatModifier> Evaluate(IReadOnlyList<CharacterData> deployedCharacters)
