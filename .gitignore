@@ -1,11 +1,11 @@
 ## Unity ##
-[Ll]ibrary/
-[Tt]emp/
-[Oo]bj/
-[Bb]uild/
-[Bb]uilds/
-[Ll]ogs/
-[Uu]serSettings/
+**[Ll]ibrary/
+**[Tt]emp/
+**[Oo]bj/
+**[Bb]uild/
+**[Bb]uilds/
+**[Ll]ogs/
+**[Uu]serSettings/
 [Mm]emoryCaptures/
 
 # Asset meta data should only be ignored when the corresponding asset is also ignored
