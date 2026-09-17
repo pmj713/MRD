@@ -115,21 +115,13 @@ namespace MRD.Battle
         }
 
         /// <summary>물리 데미지. 방어력에 따라 감쇄된다.</summary>
-        public void TakePhysicalDamage(float rawDamage) => ApplyDamage(rawDamage * CalculateMitigation(EffectiveStats.armor));
+        public void TakePhysicalDamage(float rawDamage) => ApplyDamage(rawDamage * CombatMath.CalculateMitigation(EffectiveStats.armor));
 
         /// <summary>마법 데미지. 마법저항에 따라 감쇄된다.</summary>
-        public void TakeMagicDamage(float rawDamage) => ApplyDamage(rawDamage * CalculateMitigation(EffectiveStats.magicResist));
+        public void TakeMagicDamage(float rawDamage) => ApplyDamage(rawDamage * CombatMath.CalculateMitigation(EffectiveStats.magicResist));
 
         /// <summary>방어력/마법저항을 무시하는 데미지.</summary>
         public void TakeTrueDamage(float rawDamage) => ApplyDamage(rawDamage);
-
-        // 100 / (100 + 방어스탯) 형태의 감쇄 공식. 방어스탯이 음수(방깎)면 오히려 데미지가 증폭된다.
-        // 분모가 0 이하로 내려가 계산이 깨지지 않도록 최소 1로 clamp한다.
-        private static float CalculateMitigation(float defenseStat)
-        {
-            float denominator = Mathf.Max(1f, 100f + defenseStat);
-            return 100f / denominator;
-        }
 
         private void ApplyDamage(float amount)
         {

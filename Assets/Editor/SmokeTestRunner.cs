@@ -4,6 +4,7 @@ using UnityEditor;
 using MRD.Data;
 using MRD.Battle;
 using MRD.Synergy;
+using MRD.Wave;
 
 namespace MRD.EditorTools
 {
@@ -66,6 +67,7 @@ namespace MRD.EditorTools
             ok &= CheckSynergy(spartan, heracles, zeus);
             ok &= CheckFullRoster();
             ok &= CheckCombat(spartan, heracles, zeus);
+            ok &= CheckWaveSpawner();
 
             if (ok)
                 Debug.Log("[SmokeTest] 모든 검증 통과");
@@ -280,6 +282,180 @@ namespace MRD.EditorTools
                 Object.DestroyImmediate(enemyGo);
                 Object.DestroyImmediate(zeusGo);
                 Object.DestroyImmediate(dummyGo);
+            }
+
+            return ok;
+        }
+
+        // WaveSpawner가 라운드 진행/보스 등장 규칙/데스카운트/필수클리어 게임오버를 올바르게 처리하는지 검증한다.
+        private static bool CheckWaveSpawner()
+        {
+            bool ok = true;
+
+            var defaultConfig = AssetDatabase.LoadAssetAtPath<WaveConfig>("Assets/Data/Wave/DefaultWaveConfig.asset");
+            var lineMonster = AssetDatabase.LoadAssetAtPath<MonsterData>("Assets/Data/Monsters/LineMonster_Basic.asset");
+            var boss = AssetDatabase.LoadAssetAtPath<MonsterData>("Assets/Data/Monsters/Boss_ChaosGuardian.asset");
+
+            ok &= LogAndCheck("DefaultWaveConfig 로드", defaultConfig != null, (defaultConfig != null).ToString());
+            ok &= LogAndCheck("LineMonster_Basic 로드", lineMonster != null, (lineMonster != null).ToString());
+            ok &= LogAndCheck("Boss_ChaosGuardian 로드", boss != null, (boss != null).ToString());
+            if (defaultConfig != null)
+                ok &= LogAndCheck("DefaultWaveConfig.totalRounds == 85", defaultConfig.totalRounds == 85, defaultConfig.totalRounds.ToString());
+
+            // 빠른 시뮬레이션을 위한 합성 몬스터 템플릿 (진행속도를 크게 올려 라운드 시간 내에 도착하게 함)
+            var fastMonster = ScriptableObject.CreateInstance<MonsterData>();
+            fastMonster.monsterName = "테스트용 마수";
+            fastMonster.baseHealth = 50;
+            fastMonster.baseArmor = 0;
+            fastMonster.healthGrowthPerRound = 1f;
+            fastMonster.moveSpeed = 200f; // 0.5초면 도착
+            fastMonster.goldReward = 1;
+
+            var fastBoss = ScriptableObject.CreateInstance<MonsterData>();
+            fastBoss.monsterName = "테스트용 보스";
+            fastBoss.baseHealth = 50;
+            fastBoss.baseArmor = 0;
+            fastBoss.healthGrowthPerRound = 1f;
+            fastBoss.moveSpeed = 200f;
+            fastBoss.goldReward = 10;
+            fastBoss.isBoss = true;
+
+            ok &= CheckWaveProgressionAndBossRounds(fastMonster);
+            ok &= CheckWaveDeathCountGameOver(fastMonster);
+            ok &= CheckWaveMandatoryClearFailure(fastMonster);
+
+            Object.DestroyImmediate(fastMonster);
+            Object.DestroyImmediate(fastBoss);
+
+            return ok;
+        }
+
+        // 시나리오 A: 보스 없는 15라운드를 전부 통과하면서, 좌/우 보스 라운드 판정이 맞는지 확인한다.
+        private static bool CheckWaveProgressionAndBossRounds(MonsterData fastMonster)
+        {
+            var config = ScriptableObject.CreateInstance<WaveConfig>();
+            config.totalRounds = 15;
+            config.monstersPerRound = 2;
+            config.earlyRoundThreshold = 0; // 전 라운드 동일한 길이 사용
+            config.earlyRoundDuration = 2f;
+            config.lateRoundDuration = 2f;
+            config.leftBossInterval = 10;
+            config.rightBossOffset = 3;
+            config.mandatoryClearRounds = new int[0];
+            config.startingDeathCount = 9999;
+            config.deathCountDecreaseEveryRounds = 0;
+
+            var go = new GameObject("SmokeTest_WaveSpawner_A");
+            bool ok;
+            try
+            {
+                var spawner = go.AddComponent<WaveSpawner>();
+                spawner.Configure(config, fastMonster, fastMonster, fastMonster);
+
+                var bossRoundsSeen = new Dictionary<int, (bool left, bool right)>();
+                int spawnCount = 0;
+                spawner.OnRoundStarted += (round, left, right) => bossRoundsSeen[round] = (left, right);
+                spawner.OnMonsterSpawned += _ => spawnCount++;
+
+                spawner.StartRun();
+                for (int i = 0; i < 2000 && !spawner.IsAllRoundsCleared && !spawner.IsGameOver; i++)
+                    spawner.Tick(0.1f);
+
+                ok = LogAndCheck("15라운드 전부 클리어(보스 없음)", spawner.IsAllRoundsCleared, spawner.IsAllRoundsCleared.ToString());
+                ok &= LogAndCheck("게임오버 발생 안 함", !spawner.IsGameOver, spawner.IsGameOver.ToString());
+                ok &= LogAndCheck("10라운드 = 좌측 보스", bossRoundsSeen.TryGetValue(10, out var r10) && r10.left, bossRoundsSeen.GetValueOrDefault(10).ToString());
+                ok &= LogAndCheck("3라운드 = 우측 보스", bossRoundsSeen.TryGetValue(3, out var r3) && r3.right, bossRoundsSeen.GetValueOrDefault(3).ToString());
+                ok &= LogAndCheck("13라운드 = 우측 보스", bossRoundsSeen.TryGetValue(13, out var r13) && r13.right, bossRoundsSeen.GetValueOrDefault(13).ToString());
+                // 15라운드 * 2마리 + 보스 3회(3,10,13라운드) = 33마리
+                ok &= LogAndCheck("총 스폰 수 33마리", spawnCount == 33, spawnCount.ToString());
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                Object.DestroyImmediate(config);
+            }
+
+            return ok;
+        }
+
+        // 시나리오 B: 몬스터를 죽이지 않고 계속 통과시키면 데스카운트가 줄어들다 게임오버가 되어야 한다.
+        private static bool CheckWaveDeathCountGameOver(MonsterData fastMonster)
+        {
+            var config = ScriptableObject.CreateInstance<WaveConfig>();
+            config.totalRounds = 20;
+            config.monstersPerRound = 1;
+            config.earlyRoundThreshold = 0;
+            config.earlyRoundDuration = 1f;
+            config.lateRoundDuration = 1f;
+            config.leftBossInterval = 0;
+            config.rightBossOffset = 0;
+            config.mandatoryClearRounds = new int[0];
+            config.startingDeathCount = 3;
+            config.deathCountDecreaseEveryRounds = 0;
+
+            var go = new GameObject("SmokeTest_WaveSpawner_B");
+            bool ok;
+            try
+            {
+                var spawner = go.AddComponent<WaveSpawner>();
+                spawner.Configure(config, fastMonster, null, null);
+
+                string gameOverReason = null;
+                spawner.OnGameOver += reason => gameOverReason = reason;
+
+                spawner.StartRun();
+                for (int i = 0; i < 2000 && !spawner.IsAllRoundsCleared && !spawner.IsGameOver; i++)
+                    spawner.Tick(0.1f);
+
+                ok = LogAndCheck("데스카운트 소진으로 게임오버 발생", spawner.IsGameOver, spawner.IsGameOver.ToString());
+                ok &= LogAndCheck("데스카운트 0", spawner.RemainingDeathCount == 0, spawner.RemainingDeathCount.ToString());
+                ok &= LogAndCheck("게임오버 사유에 '데스카운트' 포함", gameOverReason != null && gameOverReason.Contains("데스카운트"), gameOverReason ?? "null");
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                Object.DestroyImmediate(config);
+            }
+
+            return ok;
+        }
+
+        // 시나리오 C: 필수 클리어 라운드의 몬스터를 처치하지 못하고 통과시키면 즉시 게임오버가 되어야 한다.
+        private static bool CheckWaveMandatoryClearFailure(MonsterData fastMonster)
+        {
+            var config = ScriptableObject.CreateInstance<WaveConfig>();
+            config.totalRounds = 5;
+            config.monstersPerRound = 1;
+            config.earlyRoundThreshold = 0;
+            config.earlyRoundDuration = 1f;
+            config.lateRoundDuration = 1f;
+            config.leftBossInterval = 0;
+            config.rightBossOffset = 0;
+            config.mandatoryClearRounds = new[] { 2 };
+            config.startingDeathCount = 9999;
+            config.deathCountDecreaseEveryRounds = 0;
+
+            var go = new GameObject("SmokeTest_WaveSpawner_C");
+            bool ok;
+            try
+            {
+                var spawner = go.AddComponent<WaveSpawner>();
+                spawner.Configure(config, fastMonster, null, null);
+
+                string gameOverReason = null;
+                spawner.OnGameOver += reason => gameOverReason = reason;
+
+                spawner.StartRun();
+                for (int i = 0; i < 200 && !spawner.IsAllRoundsCleared && !spawner.IsGameOver; i++)
+                    spawner.Tick(0.1f);
+
+                ok = LogAndCheck("필수 클리어 실패로 게임오버 발생", spawner.IsGameOver, spawner.IsGameOver.ToString());
+                ok &= LogAndCheck("게임오버 사유에 '필수 클리어 실패' 포함", gameOverReason != null && gameOverReason.Contains("필수 클리어 실패"), gameOverReason ?? "null");
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                Object.DestroyImmediate(config);
             }
 
             return ok;
