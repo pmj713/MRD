@@ -69,6 +69,7 @@ namespace MRD.EditorTools
             ok &= CheckCombat(spartan, heracles, zeus);
             ok &= CheckWaveSpawner();
             ok &= CheckBattleUnitAttacksEnemyUnit(heracles);
+            ok &= CheckPlacementGrid(spartan, heracles, zeus);
 
             if (ok)
                 Debug.Log("[SmokeTest] 모든 검증 통과");
@@ -566,6 +567,70 @@ namespace MRD.EditorTools
                 Object.DestroyImmediate(allyGo);
                 Object.DestroyImmediate(spawnerGo);
                 Object.DestroyImmediate(config);
+            }
+
+            return ok;
+        }
+
+        // PlacementGrid가 워크래프트3식 격자 배치(배치/이동/해제/사망 시 자동 해제)와
+        // 배치 인원 기준 시너지 재계산을 올바르게 처리하는지 검증한다.
+        private static bool CheckPlacementGrid(CharacterData spartanData, CharacterData heraclesData, CharacterData zeusData)
+        {
+            bool ok = true;
+            var synergyData = AssetDatabase.LoadAssetAtPath<FactionSynergyData>("Assets/Data/Synergy/OlympusSynergy.asset");
+
+            var managerGo = new GameObject("SmokeTest_Placement_CombatManager");
+            var synergyGo = new GameObject("SmokeTest_Placement_SynergyManager");
+            var gridGo = new GameObject("SmokeTest_Placement_Grid");
+
+            try
+            {
+                var combatManager = managerGo.AddComponent<CombatManager>();
+                var synergyManager = synergyGo.AddComponent<SynergyManager>();
+                synergyManager.SetFactionSynergies(new List<FactionSynergyData> { synergyData });
+
+                var grid = gridGo.AddComponent<PlacementGrid>();
+                grid.Configure(3, 3, combatManager);
+
+                // 배치 / 중복 배치 방지 / 범위 밖 배치 방지
+                ok &= LogAndCheck("(0,0)에 스파르타 배치 성공", grid.TryPlaceUnit(0, 0, spartanData, out var spartanUnit), "true");
+                ok &= LogAndCheck("이미 찬 슬롯에는 배치 실패", !grid.TryPlaceUnit(0, 0, heraclesData, out _), "true");
+                ok &= LogAndCheck("(1,0)에 헤라클레스 배치 성공", grid.TryPlaceUnit(1, 0, heraclesData, out var heraclesUnit), "true");
+                ok &= LogAndCheck("격자 범위 밖 배치 실패", !grid.TryPlaceUnit(5, 5, zeusData, out _), "true");
+                ok &= LogAndCheck("GetUnitAt(0,0)이 스파르타 유닛 반환", grid.GetUnitAt(0, 0) == spartanUnit, "true");
+
+                // 이동
+                ok &= LogAndCheck("(1,0)->(2,0) 이동 성공", grid.TryMoveUnit(1, 0, 2, 0), "true");
+                ok &= LogAndCheck("이동 후 원래 슬롯은 비어있음", !grid.IsSlotOccupied(1, 0), "true");
+                ok &= LogAndCheck("찬 슬롯으로는 이동 실패", !grid.TryMoveUnit(2, 0, 0, 0), "true");
+
+                // 세 번째 유닛 배치 후 시너지 재계산 (올림포스 3체 = 공격속도 +15%)
+                ok &= LogAndCheck("(1,0)에 제우스 배치 성공", grid.TryPlaceUnit(1, 0, zeusData, out var zeusUnit), "true");
+                grid.RecomputeSynergies(synergyManager);
+
+                ok &= ApproxLog("배치 3체 시너지 반영 - 스파르타 공격속도", spartanUnit.EffectiveStats.attackSpeed, spartanData.stats.attackSpeed * 1.15f);
+                ok &= ApproxLog("배치 3체 시너지 반영 - 헤라클레스 공격속도", heraclesUnit.EffectiveStats.attackSpeed, heraclesData.stats.attackSpeed * 1.15f);
+                ok &= ApproxLog("배치 3체 시너지 반영 - 제우스 공격속도", zeusUnit.EffectiveStats.attackSpeed, zeusData.stats.attackSpeed * 1.15f);
+
+                // 명시적 해제 (판매 등)
+                ok &= LogAndCheck("(2,0) 유닛 해제 성공", grid.TryRemoveUnit(2, 0), "true");
+                ok &= LogAndCheck("해제 후 슬롯이 비어있음", !grid.IsSlotOccupied(2, 0), "true");
+
+                // 전투 중 사망 시 슬롯 자동 해제
+                bool removedEventFired = false;
+                grid.OnUnitRemoved += (_, _, _) => removedEventFired = true;
+                for (int i = 0; i < 20 && !spartanUnit.IsDead; i++)
+                    spartanUnit.TakePhysicalDamage(50f);
+
+                ok &= LogAndCheck("스파르타 유닛 사망 처리됨", spartanUnit.IsDead, spartanUnit.IsDead.ToString());
+                ok &= LogAndCheck("사망 시 슬롯(0,0) 자동 해제", !grid.IsSlotOccupied(0, 0), (!grid.IsSlotOccupied(0, 0)).ToString());
+                ok &= LogAndCheck("사망 시 OnUnitRemoved 이벤트 발생", removedEventFired, removedEventFired.ToString());
+            }
+            finally
+            {
+                Object.DestroyImmediate(managerGo);
+                Object.DestroyImmediate(synergyGo);
+                Object.DestroyImmediate(gridGo);
             }
 
             return ok;
