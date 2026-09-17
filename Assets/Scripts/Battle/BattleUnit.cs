@@ -24,6 +24,9 @@ namespace MRD.Battle
         /// </summary>
         public event Action<BattleUnit> OnAttack;
 
+        /// <summary>체력이 0이 되는 순간 한 번만 발생. 전투 매니저가 이 이벤트로 유닛을 전장에서 제거한다.</summary>
+        public event Action<BattleUnit> OnDeath;
+
         private float _activeSkillCooldownRemaining;
         private float _attackTimer;
 
@@ -130,7 +133,11 @@ namespace MRD.Battle
 
         private void ApplyDamage(float amount)
         {
+            if (IsDead) return;
+
             CurrentHealth = Mathf.Max(0f, CurrentHealth - amount);
+            if (IsDead)
+                OnDeath?.Invoke(this);
         }
     }
 }

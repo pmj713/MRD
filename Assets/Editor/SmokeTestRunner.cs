@@ -65,6 +65,7 @@ namespace MRD.EditorTools
 
             ok &= CheckSynergy(spartan, heracles, zeus);
             ok &= CheckFullRoster();
+            ok &= CheckCombat(spartan, heracles, zeus);
 
             if (ok)
                 Debug.Log("[SmokeTest] 모든 검증 통과");
@@ -183,6 +184,102 @@ namespace MRD.EditorTools
                 int expected = faction == Faction.Olympus ? 3 : 8;
                 int actual = countByFaction.GetValueOrDefault(faction);
                 ok &= LogAndCheck($"{faction} 진영 유닛 수 ({expected}개 기대)", actual == expected, actual.ToString());
+            }
+
+            return ok;
+        }
+
+        // CombatManager가 평타 데미지/마나 획득/사망 처리/트리거 패시브를 실제로 처리하는지 검증한다.
+        private static bool CheckCombat(CharacterData spartanData, CharacterData heraclesData, CharacterData zeusData)
+        {
+            bool ok = true;
+            var managerGo = new GameObject("SmokeTest_CombatManager");
+            var allyGo = new GameObject("SmokeTest_Ally_Heracles");
+            var enemyGo = new GameObject("SmokeTest_Enemy_Spartan");
+            var zeusGo = new GameObject("SmokeTest_Ally_Zeus");
+            var dummyGo = new GameObject("SmokeTest_Enemy_Dummy");
+
+            try
+            {
+                var manager = managerGo.AddComponent<CombatManager>();
+
+                var heraclesUnit = allyGo.AddComponent<BattleUnit>();
+                heraclesUnit.Initialize(heraclesData);
+                var spartanUnit = enemyGo.AddComponent<BattleUnit>();
+                spartanUnit.Initialize(spartanData);
+
+                bool deathFired = false;
+                spartanUnit.OnDeath += _ => deathFired = true;
+
+                manager.RegisterUnit(heraclesUnit, Team.Ally);
+                manager.RegisterUnit(spartanUnit, Team.Enemy);
+
+                // 평타 1회: 스파르타 방패병은 방어력 0이라 데미지가 [무크리, 크리] 범위 안에 들어야 한다.
+                float healthBefore = spartanUnit.CurrentHealth;
+                manager.ProcessAttack(heraclesUnit);
+                float actualDamage = healthBefore - spartanUnit.CurrentHealth;
+                float minDamage = heraclesData.stats.physicalAttack;
+                float maxDamage = heraclesData.stats.physicalAttack * heraclesData.stats.criticalMultiplier;
+                ok &= LogAndCheck("평타 데미지가 기대 범위 내(무크리~크리)",
+                    actualDamage >= minDamage - 0.01f && actualDamage <= maxDamage + 0.01f, actualDamage.ToString());
+                ok &= ApproxLog("평타 1회 후 마나 증가", heraclesUnit.CurrentMana, 10f);
+
+                // 죽을 때까지 반복 공격 -> OnDeath 발생 확인 (최소 데미지로도 3회면 충분히 죽는 체력차)
+                for (int i = 0; i < 10 && !spartanUnit.IsDead; i++)
+                    manager.ProcessAttack(heraclesUnit);
+
+                ok &= LogAndCheck("적 유닛이 사망 처리됨", spartanUnit.IsDead, spartanUnit.IsDead.ToString());
+                ok &= LogAndCheck("OnDeath 이벤트 발생", deathFired, deathFired.ToString());
+
+                // 대상이 사라진 뒤에도 예외 없이 처리되어야 한다 (자동 등록 해제 확인)
+                try
+                {
+                    manager.ProcessAttack(heraclesUnit);
+                    ok &= LogAndCheck("대상 없을 때 ProcessAttack 예외 없이 처리", true, "OK");
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"[SmokeTest] 대상 없을 때 예외 발생: {e}");
+                    ok = false;
+                }
+
+                // 제우스의 트리거 패시브(15%)가 통계적으로 실제 발동하는지 확인.
+                // 대상은 체력을 사실상 무한으로 부풀려 도중에 죽지 않게 한다.
+                var zeusUnit = zeusGo.AddComponent<BattleUnit>();
+                zeusUnit.Initialize(zeusData);
+                var dummyUnit = dummyGo.AddComponent<BattleUnit>();
+                dummyUnit.Initialize(zeusData, new StatModifier { healthPercent = 1000000f });
+
+                manager.RegisterUnit(zeusUnit, Team.Ally);
+                manager.RegisterUnit(dummyUnit, Team.Enemy);
+
+                float mitPhys = 100f / (100f + dummyUnit.EffectiveStats.armor);
+                float mitMagic = 100f / (100f + dummyUnit.EffectiveStats.magicResist);
+                float maxNoTriggerDamage = (zeusUnit.EffectiveStats.physicalAttack * mitPhys
+                    + zeusUnit.EffectiveStats.magicAttack * mitMagic) * zeusUnit.EffectiveStats.criticalMultiplier;
+
+                bool triggerObserved = false;
+                for (int i = 0; i < 200; i++)
+                {
+                    float before = dummyUnit.CurrentHealth;
+                    manager.ProcessAttack(zeusUnit);
+                    float damage = before - dummyUnit.CurrentHealth;
+                    if (damage > maxNoTriggerDamage + 1f)
+                    {
+                        triggerObserved = true;
+                        break;
+                    }
+                }
+
+                ok &= LogAndCheck("제우스 트리거 패시브가 200회 평타 중 최소 1회 발동", triggerObserved, triggerObserved.ToString());
+            }
+            finally
+            {
+                Object.DestroyImmediate(managerGo);
+                Object.DestroyImmediate(allyGo);
+                Object.DestroyImmediate(enemyGo);
+                Object.DestroyImmediate(zeusGo);
+                Object.DestroyImmediate(dummyGo);
             }
 
             return ok;
