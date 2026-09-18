@@ -6,6 +6,7 @@ using MRD.Battle;
 using MRD.Synergy;
 using MRD.Wave;
 using MRD.Game;
+using MRD.Gacha;
 using UnityEditor.SceneManagement;
 
 namespace MRD.EditorTools
@@ -73,6 +74,8 @@ namespace MRD.EditorTools
             ok &= CheckBattleUnitAttacksEnemyUnit(heracles);
             ok &= CheckPlacementGrid(spartan, heracles, zeus);
             ok &= CheckGameManager(spartan, heracles, zeus);
+            ok &= CheckGachaAndFusion(heracles, zeus);
+            // 씬을 다시 로드하면 그 전에 로드해둔 CharacterData 참조가 무효화될 수 있으니 항상 마지막에 실행한다.
             ok &= CheckSceneSetup();
 
             if (ok)
@@ -827,6 +830,98 @@ namespace MRD.EditorTools
             {
                 var bootstrap = bootstrapGo.GetComponent<GameBootstrap>();
                 ok &= LogAndCheck("GameBootstrap 컴포넌트 스크립트 참조 정상", bootstrap != null, (bootstrap != null).ToString());
+            }
+
+            return ok;
+        }
+
+        // 소환(가챠)과 조합이 재화 차감/보유 목록/등급 확률대로 실제로 동작하는지 검증한다.
+        private static bool CheckGachaAndFusion(CharacterData heraclesData, CharacterData zeusData)
+        {
+            bool ok = true;
+
+            var database = AssetDatabase.LoadAssetAtPath<CharacterDatabase>("Assets/Data/CharacterDatabase.asset");
+            var goldSummon = AssetDatabase.LoadAssetAtPath<GachaTable>("Assets/Data/Gacha/GoldSummon.asset");
+            var gemMidSummon = AssetDatabase.LoadAssetAtPath<GachaTable>("Assets/Data/Gacha/GemMidSummon.asset");
+
+            ok &= LogAndCheck("CharacterDatabase 로드", database != null, (database != null).ToString());
+            ok &= LogAndCheck("CharacterDatabase 전체 43개 등록", database != null && database.allCharacters.Count == 43,
+                database?.allCharacters.Count.ToString() ?? "null");
+            ok &= LogAndCheck("GoldSummon 테이블 로드", goldSummon != null, (goldSummon != null).ToString());
+            ok &= LogAndCheck("GemMidSummon 테이블 로드", gemMidSummon != null, (gemMidSummon != null).ToString());
+
+            // GachaManager: 100% 레어 테이블은 항상 레어만 뽑아야 한다.
+            var gachaGo = new GameObject("SmokeTest_GachaManager");
+            try
+            {
+                var gacha = gachaGo.AddComponent<GachaManager>();
+                gacha.SetDatabase(database);
+
+                bool allRare = true;
+                for (int i = 0; i < 30; i++)
+                {
+                    var rolled = gacha.Roll(gemMidSummon);
+                    if (rolled == null || rolled.rarity != Rarity.Rare) { allRare = false; break; }
+                }
+                ok &= LogAndCheck("100% 레어 테이블은 30회 전부 레어", allRare, allRare.ToString());
+            }
+            finally
+            {
+                Object.DestroyImmediate(gachaGo);
+            }
+
+            ok &= CheckGameManagerSummonAndFusion(database, heraclesData, zeusData, goldSummon, gemMidSummon);
+
+            return ok;
+        }
+
+        private static bool CheckGameManagerSummonAndFusion(CharacterDatabase database, CharacterData heraclesData,
+            CharacterData zeusData, GachaTable goldSummon, GachaTable gemMidSummon)
+        {
+            var go = new GameObject("SmokeTest_GameManager_Gacha");
+            bool ok;
+            try
+            {
+                var game = go.AddComponent<GameManager>();
+                game.Configure(3, 3, null, null, null, null, new List<FactionSynergyData>());
+                game.SetCharacterDatabase(database);
+
+                // 재화 없이는 소환 실패, 아무것도 차감되지 않아야 한다.
+                bool summonedWithoutGold = game.TrySummon(goldSummon, out _);
+                ok = LogAndCheck("골드 없이 소환 시도하면 실패", !summonedWithoutGold, summonedWithoutGold.ToString());
+
+                game.GrantGold(1000);
+                bool summoned = game.TrySummon(goldSummon, out var summonedCharacter);
+                ok &= LogAndCheck("골드 소환 성공", summoned, summoned.ToString());
+                ok &= LogAndCheck("소환 후 골드 100 차감", game.Gold == 900, game.Gold.ToString());
+                if (summonedCharacter != null)
+                {
+                    ok &= LogAndCheck("소환된 캐릭터 등급이 노말 또는 매직",
+                        summonedCharacter.rarity == Rarity.Normal || summonedCharacter.rarity == Rarity.Magic,
+                        summonedCharacter.rarity.ToString());
+                    ok &= LogAndCheck("소환된 캐릭터가 보유 목록에 추가됨", game.Inventory.GetCount(summonedCharacter) == 1,
+                        game.Inventory.GetCount(summonedCharacter).ToString());
+                }
+
+                // 조합: 제우스는 헤라클레스 1 + 보석 300이 필요하다.
+                bool fusedWithoutMaterial = game.TryFuseCharacter(zeusData);
+                ok &= LogAndCheck("재료 없이 조합 시도하면 실패", !fusedWithoutMaterial, fusedWithoutMaterial.ToString());
+
+                game.Inventory.Add(heraclesData); // 헤라클레스를 보유하고 있다고 가정
+                bool fusedWithoutGems = game.TryFuseCharacter(zeusData);
+                ok &= LogAndCheck("보석 없이 조합 시도하면 실패(재료는 소모 안 됨)", !fusedWithoutGems, fusedWithoutGems.ToString());
+                ok &= LogAndCheck("실패한 조합은 재료를 소모하지 않음", game.Inventory.GetCount(heraclesData) == 1, game.Inventory.GetCount(heraclesData).ToString());
+
+                game.GrantGems(300);
+                bool fused = game.TryFuseCharacter(zeusData);
+                ok &= LogAndCheck("재료+재화 충분하면 조합 성공", fused, fused.ToString());
+                ok &= LogAndCheck("조합 후 보석 300 소모", game.Gems == 0, game.Gems.ToString());
+                ok &= LogAndCheck("조합 후 헤라클레스 재료 소모됨", game.Inventory.GetCount(heraclesData) == 0, game.Inventory.GetCount(heraclesData).ToString());
+                ok &= LogAndCheck("조합 결과 제우스가 보유 목록에 추가됨", game.Inventory.GetCount(zeusData) == 1, game.Inventory.GetCount(zeusData).ToString());
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
             }
 
             return ok;

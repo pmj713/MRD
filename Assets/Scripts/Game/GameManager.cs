@@ -5,6 +5,7 @@ using MRD.Battle;
 using MRD.Data;
 using MRD.Synergy;
 using MRD.Wave;
+using MRD.Gacha;
 
 namespace MRD.Game
 {
@@ -20,6 +21,10 @@ namespace MRD.Game
         [SerializeField] private SynergyManager synergyManager;
         [SerializeField] private PlacementGrid placementGrid;
         [SerializeField] private WaveSpawner waveSpawner;
+        [SerializeField] private GachaManager gachaManager;
+
+        [Header("소환 관련")]
+        [SerializeField] private CharacterDatabase characterDatabase;
 
         [Header("배치 격자 크기")]
         [SerializeField] private int gridWidth = 5;
@@ -38,13 +43,19 @@ namespace MRD.Game
         public SynergyManager SynergyManager => synergyManager;
         public PlacementGrid PlacementGrid => placementGrid;
         public WaveSpawner WaveSpawner => waveSpawner;
+        public GachaManager GachaManager => gachaManager;
+        public PlayerInventory Inventory { get; } = new PlayerInventory();
 
         public int Gold { get; private set; }
+        public int Gems { get; private set; }
         public bool IsGameOver { get; private set; }
         public bool IsVictory { get; private set; }
 
         public event Action<int> OnGoldChanged;
+        public event Action<int> OnGemsChanged;
         public event Action<bool, string> OnGameEnded; // (승리 여부, 사유)
+        public event Action<CharacterData> OnCharacterSummoned;
+        public event Action<CharacterData> OnCharacterFused;
 
         private bool _initialized;
 
@@ -66,6 +77,9 @@ namespace MRD.Game
             factionSynergies = synergies ?? new List<FactionSynergyData>();
         }
 
+        /// <summary>소환 시스템에 쓸 캐릭터 데이터베이스를 지정한다 (부트스트랩, 테스트 등).</summary>
+        public void SetCharacterDatabase(CharacterDatabase database) => characterDatabase = database;
+
         /// <summary>배치는 웨이브 시작 전에도 가능해야 하므로, 필요해지는 시점에 한 번만 배선한다.</summary>
         private void EnsureInitialized()
         {
@@ -77,6 +91,7 @@ namespace MRD.Game
             placementGrid.Configure(gridWidth, gridHeight, combatManager);
             waveSpawner.Configure(waveConfig, lineMonsterTemplate, leftBossTemplate, rightBossTemplate);
             waveSpawner.SetCombatManager(combatManager);
+            gachaManager.SetDatabase(characterDatabase);
 
             waveSpawner.OnMonsterKilled += HandleMonsterKilled;
             waveSpawner.OnGameOver += reason => EndGame(false, reason);
@@ -91,6 +106,7 @@ namespace MRD.Game
             if (synergyManager == null) synergyManager = gameObject.AddComponent<SynergyManager>();
             if (placementGrid == null) placementGrid = gameObject.AddComponent<PlacementGrid>();
             if (waveSpawner == null) waveSpawner = gameObject.AddComponent<WaveSpawner>();
+            if (gachaManager == null) gachaManager = gameObject.AddComponent<GachaManager>();
         }
 
         public void StartGame()
@@ -126,6 +142,105 @@ namespace MRD.Game
             return success;
         }
 
+        /// <summary>골드를 지급한다 (보상, 테스트 등). 전투 처치 보상 외에 외부에서 지급할 때 사용.</summary>
+        public void GrantGold(int amount) => AddGold(amount);
+
+        /// <summary>보석을 지급한다 (랭크 미션 보상 등, 아직 랭크 미션 시스템은 없어 외부에서 직접 호출).</summary>
+        public void GrantGems(int amount) => AddGems(amount);
+
+        /// <summary>
+        /// 지정된 소환 테이블로 한 번 뽑는다. 재화가 부족하거나 해당 등급에 실제 유닛이 없으면 실패한다.
+        /// 성공하면 재화를 차감하고 결과 캐릭터를 보유 목록에 추가한다.
+        /// </summary>
+        public bool TrySummon(GachaTable table, out CharacterData result)
+        {
+            EnsureInitialized();
+            result = null;
+
+            if (table == null) return false;
+            if (!TrySpend(table.currency, table.cost)) return false;
+
+            var rolled = gachaManager.Roll(table);
+            if (rolled == null)
+            {
+                Refund(table.currency, table.cost); // 뽑을 대상이 없었으면 재화를 돌려준다
+                return false;
+            }
+
+            Inventory.Add(rolled);
+            result = rolled;
+            OnCharacterSummoned?.Invoke(rolled);
+            return true;
+        }
+
+        /// <summary>
+        /// target의 조합 레시피(FusionRecipe)대로 재료와 재화가 충분한지 확인하고, 충분하면 소모한 뒤
+        /// target을 보유 목록에 추가한다. 재료가 하나라도 부족하면 아무것도 소모하지 않고 실패한다.
+        /// </summary>
+        public bool TryFuseCharacter(CharacterData target)
+        {
+            EnsureInitialized();
+
+            if (target == null) return false;
+            var recipe = target.fusionRecipe;
+            if (recipe == null || recipe.requiredCharacters == null || recipe.requiredCharacters.Length == 0)
+                return false;
+
+            var required = new Dictionary<CharacterData, int>();
+            foreach (var material in recipe.requiredCharacters)
+            {
+                if (material == null) continue;
+                required.TryGetValue(material, out var count);
+                required[material] = count + 1;
+            }
+
+            foreach (var kv in required)
+            {
+                if (Inventory.GetCount(kv.Key) < kv.Value) return false;
+            }
+            if (Gold < recipe.goldCost || Gems < recipe.gemCost) return false;
+
+            foreach (var kv in required)
+                Inventory.TryConsume(kv.Key, kv.Value);
+
+            SpendGold(recipe.goldCost);
+            SpendGems(recipe.gemCost);
+
+            Inventory.Add(target);
+            OnCharacterFused?.Invoke(target);
+            return true;
+        }
+
+        private bool TrySpend(GachaCurrency currency, int cost)
+        {
+            if (currency == GachaCurrency.Gold) return SpendGold(cost);
+            return SpendGems(cost);
+        }
+
+        private void Refund(GachaCurrency currency, int amount)
+        {
+            if (currency == GachaCurrency.Gold) AddGold(amount);
+            else AddGems(amount);
+        }
+
+        private bool SpendGold(int amount)
+        {
+            if (amount <= 0) return true;
+            if (Gold < amount) return false;
+            Gold -= amount;
+            OnGoldChanged?.Invoke(Gold);
+            return true;
+        }
+
+        private bool SpendGems(int amount)
+        {
+            if (amount <= 0) return true;
+            if (Gems < amount) return false;
+            Gems -= amount;
+            OnGemsChanged?.Invoke(Gems);
+            return true;
+        }
+
         private void HandleMonsterKilled(EnemyUnit monster)
         {
             AddGold(monster.Source.goldReward);
@@ -135,6 +250,12 @@ namespace MRD.Game
         {
             Gold += amount;
             OnGoldChanged?.Invoke(Gold);
+        }
+
+        private void AddGems(int amount)
+        {
+            Gems += amount;
+            OnGemsChanged?.Invoke(Gems);
         }
 
         private void EndGame(bool victory, string reason)
