@@ -6,23 +6,18 @@ namespace MRD.Wave
 {
     /// <summary>
     /// 웨이브에서 스폰된 몬스터 하나의 런타임 상태.
-    /// 아직 씬에 실제 이동 경로가 없어서, 이동은 0(도착)~100(스폰 지점) 진행도 값으로 추상화했다.
-    /// 진행도가 0이 되면 OnReachedEnd(라인 통과 실패), 체력이 0이 되면 OnDeath가 발생한다.
+    /// 몬스터는 정해진 경로를 계속 순찰하며(라인 이탈이라는 개념이 없음), 죽어야만 전장에서 사라진다.
+    /// 실제 순찰 이동은 시각 표현(EnemyUnitView)이 담당하고, 여기서는 전투 관련 상태만 다룬다.
     /// </summary>
     public class EnemyUnit : MonoBehaviour, IDamageable
     {
-        private const float FullProgress = 100f;
-
         public MonsterData Source { get; private set; }
         public int SpawnRound { get; private set; }
         public float CurrentHealth { get; private set; }
-        public float RemainingProgress { get; private set; }
         public bool IsDead => CurrentHealth <= 0f;
-        public bool HasReachedEnd { get; private set; }
-        public bool IsTargetable => !IsDead && !HasReachedEnd;
+        public bool IsTargetable => !IsDead;
 
         public event Action<EnemyUnit> OnDeath;
-        public event Action<EnemyUnit> OnReachedEnd;
 
         public void Initialize(MonsterData source, int round)
         {
@@ -31,21 +26,6 @@ namespace MRD.Wave
 
             float growth = Mathf.Pow(source.healthGrowthPerRound, Mathf.Max(0, round - 1));
             CurrentHealth = source.baseHealth * growth;
-            RemainingProgress = FullProgress;
-            HasReachedEnd = false;
-        }
-
-        public void Tick(float deltaTime)
-        {
-            if (IsDead || HasReachedEnd) return;
-
-            RemainingProgress -= Source.moveSpeed * deltaTime;
-            if (RemainingProgress <= 0f)
-            {
-                RemainingProgress = 0f;
-                HasReachedEnd = true;
-                OnReachedEnd?.Invoke(this);
-            }
         }
 
         /// <summary>물리 데미지. 몬스터의 방어력에 따라 감쇄된다.</summary>
@@ -59,7 +39,7 @@ namespace MRD.Wave
 
         private void ApplyDamage(float amount)
         {
-            if (IsDead || HasReachedEnd) return;
+            if (IsDead) return;
 
             CurrentHealth = Mathf.Max(0f, CurrentHealth - amount);
             if (IsDead)

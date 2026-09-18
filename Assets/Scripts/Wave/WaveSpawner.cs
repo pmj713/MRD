@@ -9,8 +9,8 @@ namespace MRD.Wave
     /// 라운드제 웨이브 진행을 관리한다. 매 라운드 정해진 시간 동안 몬스터를 스폰하고,
     /// 10의 배수/끝자리 3 라운드에는 보스를 함께 등장시키며, 필수 클리어 라운드(80/85 등)는
     /// 그 라운드에 스폰된 몬스터를 전부 처치하지 못하면 게임을 종료한다.
-    /// 씬에 실제 이동 경로가 아직 없어 EnemyUnit은 진행도(0~100) 값으로만 이동을 표현한다.
-    /// (스폰된 GameObject는 아직 풀링/정리하지 않는다 - 추후 최적화 지점.)
+    /// 몬스터는 정해진 경로를 계속 순찰하며(라인 이탈 개념 없음) 죽어야만 사라지므로,
+    /// 처치가 밀려 생존 몬스터 수가 maxAliveMonsters에 도달하면 게임을 종료한다.
     /// </summary>
     public class WaveSpawner : MonoBehaviour
     {
@@ -21,14 +21,13 @@ namespace MRD.Wave
         [SerializeField] private CombatManager combatManager; // 지정하면 스폰되는 몬스터가 자동으로 공격 대상으로 등록된다
 
         public int CurrentRound { get; private set; }
-        public int RemainingDeathCount { get; private set; }
+        public int AliveMonsterCount => _activeMonsters.Count;
         public bool IsGameOver { get; private set; }
         public bool IsAllRoundsCleared { get; private set; }
 
         public event Action<int, bool, bool> OnRoundStarted; // round, isLeftBoss, isRightBoss
         public event Action<EnemyUnit> OnMonsterSpawned;
-        public event Action<EnemyUnit> OnMonsterKilled; // 라인 통과가 아니라 실제로 처치된 경우 (보상 지급용)
-        public event Action<int> OnDeathCountChanged;
+        public event Action<EnemyUnit> OnMonsterKilled;
         public event Action<string> OnGameOver;
         public event Action OnAllRoundsCleared;
 
@@ -55,7 +54,6 @@ namespace MRD.Wave
         public void StartRun()
         {
             CurrentRound = 0;
-            RemainingDeathCount = config.startingDeathCount;
             IsGameOver = false;
             IsAllRoundsCleared = false;
             _isRunning = true;
@@ -74,9 +72,6 @@ namespace MRD.Wave
         {
             if (!_isRunning) return;
 
-            for (int i = _activeMonsters.Count - 1; i >= 0; i--)
-                _activeMonsters[i].Tick(deltaTime);
-
             TickSpawn(deltaTime);
 
             _roundTimer += deltaTime;
@@ -94,6 +89,7 @@ namespace MRD.Wave
                 _spawnTimer -= _spawnInterval;
                 SpawnMonster(lineMonsterTemplate);
                 _spawnedThisRound++;
+                if (!_isRunning) return; // 스폰 도중 최대 생존 마릿수 초과로 게임오버가 났으면 더 스폰하지 않는다
             }
         }
 
@@ -106,12 +102,14 @@ namespace MRD.Wave
             var enemy = go.AddComponent<EnemyUnit>();
             enemy.Initialize(template, CurrentRound);
             enemy.OnDeath += HandleMonsterDeath;
-            enemy.OnReachedEnd += HandleMonsterReachedEnd;
 
             _activeMonsters.Add(enemy);
             _currentRoundMonsters.Add(enemy);
             combatManager?.RegisterEnemyTarget(enemy);
             OnMonsterSpawned?.Invoke(enemy);
+
+            if (_activeMonsters.Count >= config.maxAliveMonsters)
+                TriggerGameOver($"생존 몬스터 {config.maxAliveMonsters}마리 도달");
         }
 
         private void AdvanceRound()
@@ -155,18 +153,7 @@ namespace MRD.Wave
             if (isLeftBoss) SpawnMonster(leftBossTemplate);
             if (isRightBoss) SpawnMonster(rightBossTemplate);
 
-            ApplyDeathCountDecay(round);
-
             OnRoundStarted?.Invoke(round, isLeftBoss, isRightBoss);
-        }
-
-        private void ApplyDeathCountDecay(int round)
-        {
-            if (config.deathCountDecreaseEveryRounds <= 0) return;
-            if (round <= 1 || round % config.deathCountDecreaseEveryRounds != 0) return;
-
-            RemainingDeathCount = Mathf.Max(0, RemainingDeathCount - 1);
-            OnDeathCountChanged?.Invoke(RemainingDeathCount);
         }
 
         private bool IsMandatoryClearRound(int round)
@@ -183,23 +170,20 @@ namespace MRD.Wave
             OnMonsterKilled?.Invoke(monster);
         }
 
-        private void HandleMonsterReachedEnd(EnemyUnit monster)
-        {
-            RemoveFromActive(monster);
-
-            RemainingDeathCount = Mathf.Max(0, RemainingDeathCount - 1);
-            OnDeathCountChanged?.Invoke(RemainingDeathCount);
-
-            if (RemainingDeathCount <= 0)
-                TriggerGameOver("데스카운트 소진");
-        }
-
         private void RemoveFromActive(EnemyUnit monster)
         {
             monster.OnDeath -= HandleMonsterDeath;
-            monster.OnReachedEnd -= HandleMonsterReachedEnd;
             _activeMonsters.Remove(monster);
             combatManager?.UnregisterEnemyTarget(monster);
+
+            // 죽은 몬스터는 더 이상 전장에 남아있을 이유가 없으니 정리한다.
+            if (monster != null)
+            {
+                if (Application.isPlaying)
+                    Destroy(monster.gameObject);
+                else
+                    DestroyImmediate(monster.gameObject); // 에디터(플레이 모드 아님)에서 호출되는 경우 대비
+            }
         }
 
         private void TriggerGameOver(string reason)

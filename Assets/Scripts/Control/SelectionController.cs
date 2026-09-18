@@ -76,7 +76,7 @@ namespace MRD.Control
             IssueMoveCommand(worldPoint);
         }
 
-        // 선택된 유닛들이 한 점에 완전히 겹치지 않도록 목표 지점 주변에 격자 형태로 펼쳐서 보낸다.
+        // 선택된 유닛들이 한 점에 완전히 겹치지 않도록 목표 지점 주변 바닥(X-Z 평면)에 격자 형태로 펼쳐서 보낸다.
         private void IssueMoveCommand(Vector3 center)
         {
             int count = _selected.Count;
@@ -88,17 +88,22 @@ namespace MRD.Control
                 int row = i / columns;
                 int col = i % columns;
                 float offsetX = (col - (columns - 1) / 2f) * moveFormationSpacing;
-                float offsetY = (row - (rows - 1) / 2f) * moveFormationSpacing;
+                float offsetZ = (row - (rows - 1) / 2f) * moveFormationSpacing;
 
                 var mover = _selected[i].GetComponent<UnitMover>();
-                mover?.MoveTo(center + new Vector3(offsetX, offsetY, 0f));
+                mover?.MoveTo(center + new Vector3(offsetX, 0f, offsetZ));
             }
         }
 
+        // 카메라 각도와 상관없이 항상 바닥(Y=0 평면)과의 교점을 이동 목적지로 삼는다.
         private Vector3 ScreenToWorldPoint(Vector3 screenPos)
         {
-            screenPos.z = -targetCamera.transform.position.z; // 카메라와 유닛이 놓인 평면 사이 거리
-            return targetCamera.ScreenToWorldPoint(screenPos);
+            var ray = targetCamera.ScreenPointToRay(screenPos);
+            var groundPlane = new Plane(Vector3.up, Vector3.zero);
+            if (groundPlane.Raycast(ray, out float distance))
+                return ray.GetPoint(distance);
+
+            return targetCamera.transform.position + targetCamera.transform.forward * 10f;
         }
 
         private void SetSelection(List<Selectable> newSelection)

@@ -30,10 +30,9 @@ namespace MRD.Game
         [SerializeField] private int gridHeight = 3;
         [SerializeField] private float gridCellSize = 1.2f;
 
-        [Header("적 이동 라인 (오른쪽에서 등장해 왼쪽으로 이동)")]
-        [SerializeField] private float enemyLaneStartX = 7f;
-        [SerializeField] private float enemyLaneEndX = -7f;
-        [SerializeField] private float enemyLaneY = -2.5f;
+        [Header("몬스터 순찰 경로 (바닥 위 정사각형 루프, 죽을 때까지 계속 돈다)")]
+        [SerializeField] private float patrolHalfSize = 5f;
+        [SerializeField] private float patrolCenterZ = 6f;
 
         private GameManager _game;
 
@@ -74,9 +73,10 @@ namespace MRD.Game
 
         private void HandleUnitPlaced(int x, int y, BattleUnit unit)
         {
-            var pos = new Vector3((x - (gridWidth - 1) / 2f) * gridCellSize, y * gridCellSize, 0f);
+            // 격자의 x/y 인덱스를 바닥(X-Z 평면) 좌표로 매핑한다. Y(높이)는 항상 0.
+            var pos = new Vector3((x - (gridWidth - 1) / 2f) * gridCellSize, 0f, y * gridCellSize);
             unit.transform.position = pos;
-            var renderer = UnitVisual.AttachSquare(unit.transform, new Color(0.3f, 0.5f, 1f), 0.9f);
+            var renderer = UnitVisual.AttachCube(unit.transform, new Color(0.3f, 0.5f, 1f), 0.9f);
 
             unit.gameObject.AddComponent<UnitMover>();
             var selectable = unit.gameObject.AddComponent<Selectable>();
@@ -89,8 +89,21 @@ namespace MRD.Game
             var color = isBoss ? new Color(0.8f, 0.1f, 0.1f) : new Color(0.9f, 0.5f, 0.1f);
             float size = isBoss ? 1.4f : 0.8f;
 
-            UnitVisual.AttachSquare(enemy.transform, color, size);
-            enemy.gameObject.AddComponent<EnemyUnitView>().Setup(enemy, enemyLaneStartX, enemyLaneEndX, enemyLaneY);
+            UnitVisual.AttachCube(enemy.transform, color, size);
+            enemy.gameObject.AddComponent<EnemyUnitView>().Setup(enemy, BuildPatrolPath(), enemy.Source.moveSpeed);
+        }
+
+        private Vector3[] BuildPatrolPath()
+        {
+            float h = patrolHalfSize;
+            float z = patrolCenterZ;
+            return new[]
+            {
+                new Vector3(-h, 0f, z - h),
+                new Vector3(h, 0f, z - h),
+                new Vector3(h, 0f, z + h),
+                new Vector3(-h, 0f, z + h),
+            };
         }
 
         private static void HandleRoundStarted(int round, bool isLeftBoss, bool isRightBoss)
@@ -101,12 +114,28 @@ namespace MRD.Game
 
         private static void SetupCamera()
         {
+            CreateGround();
+
             var cam = Camera.main;
             if (cam == null) return;
 
-            cam.orthographic = true;
-            cam.orthographicSize = 6f;
-            cam.transform.position = new Vector3(0f, -1f, cam.transform.position.z);
+            cam.orthographic = false;
+            cam.fieldOfView = 50f;
+            cam.transform.position = new Vector3(0f, 9f, -5f);
+            cam.transform.LookAt(new Vector3(0f, 0f, 4f));
+        }
+
+        // 3D 공간에서 오브젝트들이 허공에 떠 있는 것처럼 보이지 않도록 넣어두는 임시 바닥.
+        private static void CreateGround()
+        {
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            ground.name = "Ground";
+            ground.transform.position = Vector3.zero;
+            ground.transform.localScale = new Vector3(3f, 1f, 3f); // 기본 10x10 평면 -> 30x30
+
+            var renderer = ground.GetComponent<Renderer>();
+            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+            renderer.material = new Material(shader) { color = new Color(0.22f, 0.28f, 0.22f) };
         }
 
 #if UNITY_EDITOR

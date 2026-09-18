@@ -22,8 +22,7 @@ namespace MRD.Wave
         [Header("필수 클리어 라운드 (해당 라운드의 몬스터를 전부 처치 못하면 게임 종료)")]
         public int[] mandatoryClearRounds = { 80, 85 };
 
-        [Header("데스카운트 (몬스터가 끝까지 도달해도 되는 허용 횟수)")]
-        public int startingDeathCount = 10;
-        public int deathCountDecreaseEveryRounds = 20; // 이 라운드 간격마다 데스카운트 1 감소
+        [Header("몬스터는 정해진 경로를 계속 순찰하며 죽어야만 사라진다 - 처치가 밀려 생존 몬스터 수가 이 값에 도달하면 게임 종료")]
+        public int maxAliveMonsters = 100;
     }
 }

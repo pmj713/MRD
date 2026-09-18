@@ -299,7 +299,7 @@ namespace MRD.EditorTools
             return ok;
         }
 
-        // WaveSpawner가 라운드 진행/보스 등장 규칙/데스카운트/필수클리어 게임오버를 올바르게 처리하는지 검증한다.
+        // WaveSpawner가 라운드 진행/보스 등장 규칙/생존 몬스터 상한/필수클리어 게임오버를 올바르게 처리하는지 검증한다.
         private static bool CheckWaveSpawner()
         {
             bool ok = true;
@@ -333,7 +333,7 @@ namespace MRD.EditorTools
             fastBoss.isBoss = true;
 
             ok &= CheckWaveProgressionAndBossRounds(fastMonster);
-            ok &= CheckWaveDeathCountGameOver(fastMonster);
+            ok &= CheckWaveMaxAliveMonstersGameOver(fastMonster);
             ok &= CheckWaveMandatoryClearFailure(fastMonster);
 
             Object.DestroyImmediate(fastMonster);
@@ -354,8 +354,6 @@ namespace MRD.EditorTools
             config.leftBossInterval = 10;
             config.rightBossOffset = 3;
             config.mandatoryClearRounds = new int[0];
-            config.startingDeathCount = 9999;
-            config.deathCountDecreaseEveryRounds = 0;
 
             var go = new GameObject("SmokeTest_WaveSpawner_A");
             bool ok;
@@ -390,8 +388,8 @@ namespace MRD.EditorTools
             return ok;
         }
 
-        // 시나리오 B: 몬스터를 죽이지 않고 계속 통과시키면 데스카운트가 줄어들다 게임오버가 되어야 한다.
-        private static bool CheckWaveDeathCountGameOver(MonsterData fastMonster)
+        // 시나리오 B: 몬스터는 죽지 않는 한 계속 순찰하며 쌓이므로, 생존 마릿수가 상한에 도달하면 게임오버가 되어야 한다.
+        private static bool CheckWaveMaxAliveMonstersGameOver(MonsterData fastMonster)
         {
             var config = ScriptableObject.CreateInstance<WaveConfig>();
             config.totalRounds = 20;
@@ -402,8 +400,7 @@ namespace MRD.EditorTools
             config.leftBossInterval = 0;
             config.rightBossOffset = 0;
             config.mandatoryClearRounds = new int[0];
-            config.startingDeathCount = 3;
-            config.deathCountDecreaseEveryRounds = 0;
+            config.maxAliveMonsters = 3;
 
             var go = new GameObject("SmokeTest_WaveSpawner_B");
             bool ok;
@@ -419,9 +416,9 @@ namespace MRD.EditorTools
                 for (int i = 0; i < 2000 && !spawner.IsAllRoundsCleared && !spawner.IsGameOver; i++)
                     spawner.Tick(0.1f);
 
-                ok = LogAndCheck("데스카운트 소진으로 게임오버 발생", spawner.IsGameOver, spawner.IsGameOver.ToString());
-                ok &= LogAndCheck("데스카운트 0", spawner.RemainingDeathCount == 0, spawner.RemainingDeathCount.ToString());
-                ok &= LogAndCheck("게임오버 사유에 '데스카운트' 포함", gameOverReason != null && gameOverReason.Contains("데스카운트"), gameOverReason ?? "null");
+                ok = LogAndCheck("생존 몬스터 상한 도달로 게임오버 발생", spawner.IsGameOver, spawner.IsGameOver.ToString());
+                ok &= LogAndCheck("생존 몬스터 수가 상한과 일치", spawner.AliveMonsterCount == 3, spawner.AliveMonsterCount.ToString());
+                ok &= LogAndCheck("게임오버 사유에 '생존 몬스터' 포함", gameOverReason != null && gameOverReason.Contains("생존 몬스터"), gameOverReason ?? "null");
             }
             finally
             {
@@ -444,8 +441,6 @@ namespace MRD.EditorTools
             config.leftBossInterval = 0;
             config.rightBossOffset = 0;
             config.mandatoryClearRounds = new[] { 2 };
-            config.startingDeathCount = 9999;
-            config.deathCountDecreaseEveryRounds = 0;
 
             var go = new GameObject("SmokeTest_WaveSpawner_C");
             bool ok;
@@ -504,13 +499,13 @@ namespace MRD.EditorTools
                 ok &= LogAndCheck("BattleUnit -> EnemyUnit 평타 데미지 범위 내",
                     damage >= minDamage - 0.01f && damage <= maxDamage + 0.01f, damage.ToString());
 
-                // 몬스터가 라인 끝까지 도달하면(HasReachedEnd) 더 이상 유효 타겟이 아니어야 한다.
-                enemy.Tick(100f); // moveSpeed=10, 진행도 100 -> 100초 안 걸리고 즉시 도달
-                ok &= LogAndCheck("도착한 몬스터는 IsTargetable == false", !enemy.IsTargetable, enemy.IsTargetable.ToString());
+                // 몬스터가 죽으면 더 이상 유효 타겟이 아니어야 한다.
+                enemy.TakeTrueDamage(9999f);
+                ok &= LogAndCheck("사망한 몬스터는 IsTargetable == false", !enemy.IsTargetable, enemy.IsTargetable.ToString());
 
                 float healthBeforeSecond = enemy.CurrentHealth;
                 manager.ProcessAttack(heraclesUnit);
-                ok &= ApproxLog("도착한 몬스터는 더 이상 공격받지 않음", enemy.CurrentHealth, healthBeforeSecond);
+                ok &= ApproxLog("사망한 몬스터는 더 이상 공격받지 않음", enemy.CurrentHealth, healthBeforeSecond);
             }
             finally
             {
@@ -536,8 +531,6 @@ namespace MRD.EditorTools
             config.leftBossInterval = 0;
             config.rightBossOffset = 0;
             config.mandatoryClearRounds = new int[0];
-            config.startingDeathCount = 9999;
-            config.deathCountDecreaseEveryRounds = 0;
 
             var managerGo = new GameObject("SmokeTest_WaveIntegration_CombatManager");
             var allyGo = new GameObject("SmokeTest_WaveIntegration_Ally");
@@ -661,8 +654,6 @@ namespace MRD.EditorTools
             fastConfig.leftBossInterval = 0;
             fastConfig.rightBossOffset = 0;
             fastConfig.mandatoryClearRounds = new int[0];
-            fastConfig.startingDeathCount = 9999;
-            fastConfig.deathCountDecreaseEveryRounds = 0;
 
             bool ok = CheckGameManagerPlacementAndKillReward(spartanData, heraclesData, zeusData, synergyData, lineMonster, fastConfig);
             ok &= CheckGameManagerVictory(lineMonster, synergyData);
@@ -734,8 +725,6 @@ namespace MRD.EditorTools
             config.leftBossInterval = 0;
             config.rightBossOffset = 0;
             config.mandatoryClearRounds = new int[0];
-            config.startingDeathCount = 9999;
-            config.deathCountDecreaseEveryRounds = 0;
 
             var fastMonster = ScriptableObject.CreateInstance<MonsterData>();
             fastMonster.monsterName = "빠른 마수";
@@ -783,8 +772,7 @@ namespace MRD.EditorTools
             config.leftBossInterval = 0;
             config.rightBossOffset = 0;
             config.mandatoryClearRounds = new int[0];
-            config.startingDeathCount = 2;
-            config.deathCountDecreaseEveryRounds = 0;
+            config.maxAliveMonsters = 2;
 
             var fastMonster = ScriptableObject.CreateInstance<MonsterData>();
             fastMonster.monsterName = "빠른 마수";
@@ -801,11 +789,11 @@ namespace MRD.EditorTools
                 bool? victoryResult = null;
                 game.OnGameEnded += (victory, _) => victoryResult = victory;
 
-                game.StartGame(); // 아무도 배치하지 않아서 몬스터가 전부 라인을 통과하게 됨
+                game.StartGame(); // 아무도 배치하지 않아서 몬스터가 죽지 않고 계속 쌓임
                 for (int i = 0; i < 500 && !game.IsGameOver; i++)
                     game.WaveSpawner.Tick(0.1f);
 
-                ok = LogAndCheck("데스카운트 소진 시 게임 종료", game.IsGameOver, game.IsGameOver.ToString());
+                ok = LogAndCheck("생존 몬스터 상한 도달 시 게임 종료", game.IsGameOver, game.IsGameOver.ToString());
                 ok &= LogAndCheck("패배로 판정됨", !game.IsVictory, game.IsVictory.ToString());
                 ok &= LogAndCheck("OnGameEnded(false, ...)로 발생", victoryResult == false, (victoryResult ?? true).ToString());
             }

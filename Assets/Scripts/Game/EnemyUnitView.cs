@@ -4,31 +4,67 @@ using MRD.Wave;
 namespace MRD.Game
 {
     /// <summary>
-    /// EnemyUnit.RemainingProgress(100~0)에 맞춰 좌우로 이동하는 임시 시각 표현.
-    /// 실제 이동 경로(웨이포인트 등)가 생기면 이 스크립트를 대체하면 된다.
+    /// 몬스터가 정해진 다각형 경로(정사각형 루프)를 계속 순찰하도록 만드는 임시 시각 표현.
+    /// 실제 경로/웨이포인트 시스템이 생기면 이 스크립트를 대체하면 된다.
     /// </summary>
     public class EnemyUnitView : MonoBehaviour
     {
         private EnemyUnit _enemy;
-        private float _startX;
-        private float _endX;
-        private float _laneY;
+        private Vector3[] _corners;
+        private float _speed;
+        private float _perimeter;
+        private float _distanceTraveled;
 
-        public void Setup(EnemyUnit enemy, float startX, float endX, float laneY)
+        public void Setup(EnemyUnit enemy, Vector3[] pathCorners, float speed)
         {
             _enemy = enemy;
-            _startX = startX;
-            _endX = endX;
-            _laneY = laneY;
+            _corners = pathCorners;
+            _speed = Mathf.Max(0.01f, speed);
+            _perimeter = ComputePerimeter(pathCorners);
+            _distanceTraveled = Random.Range(0f, Mathf.Max(0.01f, _perimeter)); // 여러 마리가 한 점에 겹치지 않도록 시작점 분산
+
+            transform.position = GetPointAtDistance(_distanceTraveled);
         }
 
         private void Update()
         {
-            if (_enemy == null) return;
+            if (_enemy == null || _enemy.IsDead) return;
 
-            float t = 1f - (_enemy.RemainingProgress / 100f);
-            float x = Mathf.Lerp(_startX, _endX, t);
-            transform.position = new Vector3(x, _laneY, 0f);
+            _distanceTraveled += _speed * Time.deltaTime;
+            if (_perimeter > 0f)
+                _distanceTraveled %= _perimeter;
+
+            transform.position = GetPointAtDistance(_distanceTraveled);
+        }
+
+        private Vector3 GetPointAtDistance(float distance)
+        {
+            if (_corners == null || _corners.Length < 2) return transform.position;
+
+            float remaining = distance;
+            for (int i = 0; i < _corners.Length; i++)
+            {
+                Vector3 a = _corners[i];
+                Vector3 b = _corners[(i + 1) % _corners.Length];
+                float segmentLength = Vector3.Distance(a, b);
+
+                if (remaining <= segmentLength)
+                    return Vector3.Lerp(a, b, segmentLength > 0f ? remaining / segmentLength : 0f);
+
+                remaining -= segmentLength;
+            }
+
+            return _corners[0];
+        }
+
+        private static float ComputePerimeter(Vector3[] corners)
+        {
+            if (corners == null || corners.Length < 2) return 0f;
+
+            float total = 0f;
+            for (int i = 0; i < corners.Length; i++)
+                total += Vector3.Distance(corners[i], corners[(i + 1) % corners.Length]);
+            return total;
         }
     }
 }

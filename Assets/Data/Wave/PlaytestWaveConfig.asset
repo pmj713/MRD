@@ -20,5 +20,4 @@ MonoBehaviour:
   leftBossInterval: 10
   rightBossOffset: 3
   mandatoryClearRounds: []
-  startingDeathCount: 15
-  deathCountDecreaseEveryRounds: 0
+  maxAliveMonsters: 30

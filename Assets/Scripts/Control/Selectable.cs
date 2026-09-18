@@ -12,14 +12,14 @@ namespace MRD.Control
         public BattleUnit Unit { get; private set; }
         public bool IsSelected { get; private set; }
 
-        private SpriteRenderer _visualRenderer;
+        private Renderer _visualRenderer;
         private Color _baseColor;
 
-        public void Initialize(BattleUnit unit, SpriteRenderer visualRenderer)
+        public void Initialize(BattleUnit unit, Renderer visualRenderer)
         {
             Unit = unit;
             _visualRenderer = visualRenderer;
-            _baseColor = _visualRenderer != null ? _visualRenderer.color : Color.white;
+            _baseColor = _visualRenderer != null ? _visualRenderer.material.color : Color.white;
         }
 
         public void SetSelected(bool selected)
@@ -27,7 +27,7 @@ namespace MRD.Control
             IsSelected = selected;
             if (_visualRenderer == null) return;
 
-            _visualRenderer.color = selected ? Color.Lerp(_baseColor, Color.white, 0.6f) : _baseColor;
+            _visualRenderer.material.color = selected ? Color.Lerp(_baseColor, Color.white, 0.6f) : _baseColor;
         }
 
         private void OnEnable() => SelectionController.Register(this);

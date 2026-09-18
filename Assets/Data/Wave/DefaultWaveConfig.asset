@@ -22,5 +22,4 @@ MonoBehaviour:
   mandatoryClearRounds:
   - 80
   - 85
-  startingDeathCount: 10
-  deathCountDecreaseEveryRounds: 20
+  maxAliveMonsters: 100
