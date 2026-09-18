@@ -4,6 +4,7 @@ using MRD.Data;
 using MRD.Battle;
 using MRD.Synergy;
 using MRD.Wave;
+using MRD.Control;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -42,6 +43,7 @@ namespace MRD.Game
             AutoLoadMissingReferences();
 #endif
             SetupCamera();
+            gameObject.AddComponent<SelectionController>();
 
             var gameGo = new GameObject("GameManager");
             _game = gameGo.AddComponent<GameManager>();
@@ -74,7 +76,11 @@ namespace MRD.Game
         {
             var pos = new Vector3((x - (gridWidth - 1) / 2f) * gridCellSize, y * gridCellSize, 0f);
             unit.transform.position = pos;
-            UnitVisual.AttachSquare(unit.transform, new Color(0.3f, 0.5f, 1f), 0.9f);
+            var renderer = UnitVisual.AttachSquare(unit.transform, new Color(0.3f, 0.5f, 1f), 0.9f);
+
+            unit.gameObject.AddComponent<UnitMover>();
+            var selectable = unit.gameObject.AddComponent<Selectable>();
+            selectable.Initialize(unit, renderer);
         }
 
         private void HandleMonsterSpawned(EnemyUnit enemy)

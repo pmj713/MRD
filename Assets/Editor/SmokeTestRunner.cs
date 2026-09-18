@@ -7,6 +7,7 @@ using MRD.Synergy;
 using MRD.Wave;
 using MRD.Game;
 using MRD.Gacha;
+using MRD.Control;
 using UnityEditor.SceneManagement;
 
 namespace MRD.EditorTools
@@ -75,6 +76,8 @@ namespace MRD.EditorTools
             ok &= CheckPlacementGrid(spartan, heracles, zeus);
             ok &= CheckGameManager(spartan, heracles, zeus);
             ok &= CheckGachaAndFusion(heracles, zeus);
+            ok &= CheckSelectionMath();
+            ok &= CheckUnitMover();
             // 씬을 다시 로드하면 그 전에 로드해둔 CharacterData 참조가 무효화될 수 있으니 항상 마지막에 실행한다.
             ok &= CheckSceneSetup();
 
@@ -830,6 +833,93 @@ namespace MRD.EditorTools
             {
                 var bootstrap = bootstrapGo.GetComponent<GameBootstrap>();
                 ok &= LogAndCheck("GameBootstrap 컴포넌트 스크립트 참조 정상", bootstrap != null, (bootstrap != null).ToString());
+            }
+
+            return ok;
+        }
+
+        // 클릭/드래그 선택 판정(SelectionMath)이 화면 좌표 기준으로 올바르게 동작하는지 검증한다.
+        // 실제 마우스 입력 없이, 같은 카메라의 WorldToScreenPoint로부터 좌표를 역산해서 해상도에 무관하게 검증한다.
+        private static bool CheckSelectionMath()
+        {
+            bool ok;
+            var camGo = new GameObject("SmokeTest_SelectionCamera");
+            var leftGo = new GameObject("SmokeTest_Left");
+            var midGo = new GameObject("SmokeTest_Mid");
+            var rightGo = new GameObject("SmokeTest_Right");
+
+            try
+            {
+                var cam = camGo.AddComponent<Camera>();
+                cam.orthographic = true;
+                cam.orthographicSize = 5f;
+                camGo.transform.position = new Vector3(0f, 0f, -10f);
+
+                leftGo.transform.position = new Vector3(-3f, 0f, 0f);
+                midGo.transform.position = new Vector3(0f, 0f, 0f);
+                rightGo.transform.position = new Vector3(3f, 0f, 0f);
+
+                var left = leftGo.AddComponent<Selectable>();
+                var mid = midGo.AddComponent<Selectable>();
+                var right = rightGo.AddComponent<Selectable>();
+                left.Initialize(null, null);
+                mid.Initialize(null, null);
+                right.Initialize(null, null);
+
+                var all = new List<Selectable> { left, mid, right };
+
+                Vector2 midScreen = cam.WorldToScreenPoint(midGo.transform.position);
+                var nearest = SelectionMath.FindNearest(all, cam, midScreen, 10f);
+                ok = LogAndCheck("클릭 지점과 가장 가까운 유닛(가운데) 선택", nearest == mid, (nearest == mid).ToString());
+
+                Vector2 farPoint = midScreen + new Vector2(10000f, 10000f);
+                var nothingNearby = SelectionMath.FindNearest(all, cam, farPoint, 10f);
+                ok &= LogAndCheck("반경 밖 클릭은 아무것도 선택하지 않음", nothingNearby == null, (nothingNearby == null).ToString());
+
+                Vector2 leftScreen = cam.WorldToScreenPoint(leftGo.transform.position);
+                float xMin = Mathf.Min(leftScreen.x, midScreen.x) - 5f;
+                float xMax = Mathf.Max(leftScreen.x, midScreen.x) + 5f;
+                var dragRect = new Rect(xMin, -1e6f, xMax - xMin, 2e6f); // y는 전부 포함시키고 x만으로 왼쪽/가운데만 가려냄
+
+                var found = SelectionMath.FindInRect(all, cam, dragRect);
+                ok &= LogAndCheck("드래그 선택 범위: 왼쪽+가운데만 포함, 오른쪽 제외",
+                    found.Contains(left) && found.Contains(mid) && !found.Contains(right),
+                    $"count={found.Count}");
+            }
+            finally
+            {
+                Object.DestroyImmediate(camGo);
+                Object.DestroyImmediate(leftGo);
+                Object.DestroyImmediate(midGo);
+                Object.DestroyImmediate(rightGo);
+            }
+
+            return ok;
+        }
+
+        // UnitMover가 실제로 목표 지점까지 이동하고, 도착하면 멈추는지 검증한다.
+        private static bool CheckUnitMover()
+        {
+            bool ok;
+            var go = new GameObject("SmokeTest_UnitMover");
+            try
+            {
+                go.transform.position = Vector3.zero;
+                var mover = go.AddComponent<UnitMover>();
+
+                var destination = new Vector3(5f, 0f, 0f);
+                mover.MoveTo(destination);
+                ok = LogAndCheck("이동 명령 직후 IsMoving == true", mover.IsMoving, mover.IsMoving.ToString());
+
+                for (int i = 0; i < 200 && mover.IsMoving; i++)
+                    mover.Tick(0.1f);
+
+                ok &= ApproxLog("충분한 시간 후 목표 지점에 도달", go.transform.position.x, destination.x);
+                ok &= LogAndCheck("도착 후 IsMoving == false", !mover.IsMoving, mover.IsMoving.ToString());
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
             }
 
             return ok;
