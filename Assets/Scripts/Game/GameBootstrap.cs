@@ -41,9 +41,11 @@ namespace MRD.Game
         [SerializeField] private float gridCellSize = 1.5f;
         [SerializeField] private float gridOriginZ = -20f;
 
-        [Header("몬스터 순찰 경로 (바닥 위 정사각형 루프, 죽을 때까지 계속 돈다)")]
-        [SerializeField] private float patrolHalfSize = 10f;
-        [SerializeField] private float patrolCenterZ = 0f;
+        [Header("몬스터 순찰 경로 (바닥 위 직사각형 루프, 죽을 때까지 계속 돈다 - 폭/깊이/중심을 각각 조절 가능)")]
+        [SerializeField] private float patrolHalfWidth = 14f;
+        [SerializeField] private float patrolHalfDepth = 12f;
+        [SerializeField] private float patrolCenterX = 0f;
+        [SerializeField] private float patrolCenterZ = 3f;
 
         private GameManager _game;
 
@@ -117,14 +119,16 @@ namespace MRD.Game
 
         private Vector3[] BuildPatrolPath()
         {
-            float h = patrolHalfSize;
-            float z = patrolCenterZ;
+            float xMin = patrolCenterX - patrolHalfWidth;
+            float xMax = patrolCenterX + patrolHalfWidth;
+            float zMin = patrolCenterZ - patrolHalfDepth;
+            float zMax = patrolCenterZ + patrolHalfDepth;
             return new[]
             {
-                new Vector3(-h, 0f, z - h),
-                new Vector3(h, 0f, z - h),
-                new Vector3(h, 0f, z + h),
-                new Vector3(-h, 0f, z + h),
+                new Vector3(xMin, 0f, zMin),
+                new Vector3(xMax, 0f, zMin),
+                new Vector3(xMax, 0f, zMax),
+                new Vector3(xMin, 0f, zMax),
             };
         }
 
