@@ -35,14 +35,15 @@ namespace MRD.Game
         [SerializeField] private GachaTable gemAdvancedSummonTable;
         [SerializeField] private CharacterData fusionTestTarget;
 
-        [Header("배치 격자")]
-        [SerializeField] private int gridWidth = 5;
-        [SerializeField] private int gridHeight = 3;
-        [SerializeField] private float gridCellSize = 1.2f;
+        [Header("배치 격자 (몬스터 순찰 경로보다 안쪽/뒤쪽에 놓이도록 gridOriginZ로 위치 조정)")]
+        [SerializeField] private int gridWidth = 10;
+        [SerializeField] private int gridHeight = 6;
+        [SerializeField] private float gridCellSize = 1.5f;
+        [SerializeField] private float gridOriginZ = -20f;
 
         [Header("몬스터 순찰 경로 (바닥 위 정사각형 루프, 죽을 때까지 계속 돈다)")]
-        [SerializeField] private float patrolHalfSize = 5f;
-        [SerializeField] private float patrolCenterZ = 6f;
+        [SerializeField] private float patrolHalfSize = 10f;
+        [SerializeField] private float patrolCenterZ = 0f;
 
         private GameManager _game;
 
@@ -93,7 +94,8 @@ namespace MRD.Game
         private void HandleUnitPlaced(int x, int y, BattleUnit unit)
         {
             // 격자의 x/y 인덱스를 바닥(X-Z 평면) 좌표로 매핑한다. Y(높이)는 항상 0.
-            var pos = new Vector3((x - (gridWidth - 1) / 2f) * gridCellSize, 0f, y * gridCellSize);
+            // z는 gridOriginZ에서 시작해서 순찰 경로 쪽(양의 Z 방향)으로 늘어나며, 순찰 경로와 겹치지 않도록 뒤쪽에 위치시킨다.
+            var pos = new Vector3((x - (gridWidth - 1) / 2f) * gridCellSize, 0f, gridOriginZ + y * gridCellSize);
             unit.transform.position = pos;
             var renderer = UnitVisual.AttachCube(unit.transform, new Color(0.3f, 0.5f, 1f), 0.9f);
 
@@ -139,9 +141,9 @@ namespace MRD.Game
             if (cam == null) return;
 
             cam.orthographic = false;
-            cam.fieldOfView = 50f;
-            cam.transform.position = new Vector3(0f, 9f, -5f);
-            cam.transform.LookAt(new Vector3(0f, 0f, 4f));
+            cam.fieldOfView = 55f;
+            cam.transform.position = new Vector3(0f, 20f, -26f);
+            cam.transform.LookAt(new Vector3(0f, 0f, -8f));
         }
 
         // 3D 공간에서 오브젝트들이 허공에 떠 있는 것처럼 보이지 않도록 넣어두는 임시 바닥.
@@ -150,7 +152,7 @@ namespace MRD.Game
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
             ground.transform.position = Vector3.zero;
-            ground.transform.localScale = new Vector3(3f, 1f, 3f); // 기본 10x10 평면 -> 30x30
+            ground.transform.localScale = new Vector3(5f, 1f, 5f); // 기본 10x10 평면 -> 50x50 (순찰 경로+배치 격자를 더 넉넉하게 늘리기 위해 확장)
 
             var renderer = ground.GetComponent<Renderer>();
             var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
