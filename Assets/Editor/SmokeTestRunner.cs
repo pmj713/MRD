@@ -76,6 +76,7 @@ namespace MRD.EditorTools
             ok &= CheckPlacementGrid(spartan, heracles, zeus);
             ok &= CheckGameManager(spartan, heracles, zeus);
             ok &= CheckGachaAndFusion(heracles, zeus);
+            ok &= CheckFusionChains();
             ok &= CheckSelectionMath();
             ok &= CheckUnitMover();
             // 씬을 다시 로드하면 그 전에 로드해둔 CharacterData 참조가 무효화될 수 있으니 항상 마지막에 실행한다.
@@ -908,6 +909,53 @@ namespace MRD.EditorTools
             finally
             {
                 Object.DestroyImmediate(go);
+            }
+
+            return ok;
+        }
+
+        // 유니크/전설 등급 유닛들의 조합식(레어 2개 -> 유니크, 유니크 -> 전설 2종)이 올바르게
+        // 채워졌는지 확인한다. 히든 조합식(전설 -> 히든)은 로스터 생성 시점부터 이미 있었다.
+        private static bool CheckFusionChains()
+        {
+            bool ok = true;
+
+            ok &= CheckFusionRecipe("Assets/Data/Characters/Asgard/Sif.asset", "시프",
+                new[] { ("Assets/Data/Characters/Asgard/Tyr.asset", "티르"), ("Assets/Data/Characters/Asgard/Freyr.asset", "프레이") }, 200);
+            ok &= CheckFusionRecipe("Assets/Data/Characters/Asgard/Thor.asset", "토르",
+                new[] { ("Assets/Data/Characters/Asgard/Sif.asset", "시프") }, 400);
+            ok &= CheckFusionRecipe("Assets/Data/Characters/Asgard/Loki.asset", "로키",
+                new[] { ("Assets/Data/Characters/Asgard/Sif.asset", "시프") }, 400);
+
+            ok &= CheckFusionRecipe("Assets/Data/Characters/AbyssalArchive/Ishtar.asset", "이슈타르",
+                new[] { ("Assets/Data/Characters/AbyssalArchive/Gilgamesh.asset", "길가메시"), ("Assets/Data/Characters/AbyssalArchive/Enkidu.asset", "엔키두") }, 200);
+            ok &= CheckFusionRecipe("Assets/Data/Characters/AbyssalArchive/Enlil.asset", "엔릴",
+                new[] { ("Assets/Data/Characters/AbyssalArchive/Ishtar.asset", "이슈타르") }, 400);
+
+            return ok;
+        }
+
+        private static bool CheckFusionRecipe(string targetPath, string expectedTargetName,
+            (string path, string expectedName)[] expectedMaterials, int expectedGold)
+        {
+            bool ok = true;
+            var target = AssetDatabase.LoadAssetAtPath<CharacterData>(targetPath);
+            ok &= LogAndCheck($"{expectedTargetName} 에셋 로드", target != null, (target != null).ToString());
+            if (target == null) return ok;
+
+            var recipe = target.fusionRecipe;
+            ok &= LogAndCheck($"{expectedTargetName} 조합 재료 개수", recipe.requiredCharacters != null && recipe.requiredCharacters.Length == expectedMaterials.Length,
+                recipe.requiredCharacters?.Length.ToString() ?? "null");
+            ok &= LogAndCheck($"{expectedTargetName} 조합 골드 비용", recipe.goldCost == expectedGold, recipe.goldCost.ToString());
+
+            if (recipe.requiredCharacters != null)
+            {
+                for (int i = 0; i < expectedMaterials.Length && i < recipe.requiredCharacters.Length; i++)
+                {
+                    var actualName = recipe.requiredCharacters[i]?.characterName;
+                    ok &= LogAndCheck($"{expectedTargetName} 재료[{i}] = {expectedMaterials[i].expectedName}",
+                        actualName == expectedMaterials[i].expectedName, actualName ?? "null");
+                }
             }
 
             return ok;
