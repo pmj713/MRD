@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -20,6 +21,9 @@ namespace MRD.Control
         private Vector2 _dragStart;
         private bool _isMouseDown;
         private bool _isDragging;
+
+        /// <summary>선택 내용이 바뀔 때마다 발생 (UI가 선택된 유닛 정보를 보여주는 용도 등).</summary>
+        public event Action<IReadOnlyList<Selectable>> OnSelectionChanged;
 
         public static void Register(Selectable selectable) => AllSelectables.Add(selectable);
         public static void Unregister(Selectable selectable) => AllSelectables.Remove(selectable);
@@ -112,6 +116,8 @@ namespace MRD.Control
             _selected.Clear();
             _selected.AddRange(newSelection);
             foreach (var s in _selected) s.SetSelected(true);
+
+            OnSelectionChanged?.Invoke(_selected);
         }
 
         private static Rect BuildRect(Vector2 a, Vector2 b)

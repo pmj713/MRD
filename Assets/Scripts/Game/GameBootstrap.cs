@@ -5,6 +5,8 @@ using MRD.Battle;
 using MRD.Synergy;
 using MRD.Wave;
 using MRD.Control;
+using MRD.Gacha;
+using MRD.UI;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -25,6 +27,14 @@ namespace MRD.Game
         [SerializeField] private List<FactionSynergyData> factionSynergies = new List<FactionSynergyData>();
         [SerializeField] private List<CharacterData> starterRoster = new List<CharacterData>();
 
+        [Header("소환/조합 (비워두면 자동 로드)")]
+        [SerializeField] private CharacterDatabase characterDatabase;
+        [SerializeField] private GachaTable goldSummonTable;
+        [SerializeField] private GachaTable gemBasicSummonTable;
+        [SerializeField] private GachaTable gemMidSummonTable;
+        [SerializeField] private GachaTable gemAdvancedSummonTable;
+        [SerializeField] private CharacterData fusionTestTarget;
+
         [Header("배치 격자")]
         [SerializeField] private int gridWidth = 5;
         [SerializeField] private int gridHeight = 3;
@@ -42,12 +52,13 @@ namespace MRD.Game
             AutoLoadMissingReferences();
 #endif
             SetupCamera();
-            gameObject.AddComponent<SelectionController>();
+            var selectionController = gameObject.AddComponent<SelectionController>();
             gameObject.AddComponent<CameraEdgePan>();
 
             var gameGo = new GameObject("GameManager");
             _game = gameGo.AddComponent<GameManager>();
             _game.Configure(gridWidth, gridHeight, waveConfig, lineMonsterTemplate, bossTemplate, bossTemplate, factionSynergies);
+            _game.SetCharacterDatabase(characterDatabase);
 
             _game.PlacementGrid.OnUnitPlaced += HandleUnitPlaced;
             _game.WaveSpawner.OnMonsterSpawned += HandleMonsterSpawned;
@@ -55,9 +66,14 @@ namespace MRD.Game
             _game.OnGoldChanged += gold => Debug.Log($"[MRD] 골드: {gold}");
             _game.OnGameEnded += (victory, reason) => Debug.Log(victory ? $"[MRD] 승리! {reason}" : $"[MRD] 패배: {reason}");
 
+            gameObject.AddComponent<GameHud>().Initialize(_game, selectionController, goldSummonTable,
+                gemBasicSummonTable, gemMidSummonTable, gemAdvancedSummonTable, fusionTestTarget);
+
             PlaceStarterRoster();
 
             _game.StartGame();
+            _game.GrantGold(500); // 소환/조합 버튼을 바로 눌러볼 수 있도록 지급하는 테스트용 시작 재화
+            _game.GrantGems(350); // 제우스 조합(보석 300)까지 바로 시도해볼 수 있는 넉넉한 값
             Debug.Log("[MRD] 게임 시작");
         }
 
@@ -68,6 +84,7 @@ namespace MRD.Game
             {
                 if (data == null) continue;
                 _game.PlaceUnit(x, 0, data, out _);
+                _game.Inventory.Add(data); // 배치한 유닛은 보유 중인 것으로 취급 (조합 재료 등으로 바로 쓸 수 있게)
                 x++;
             }
         }
@@ -169,6 +186,19 @@ namespace MRD.Game
                     if (data != null) starterRoster.Add(data);
                 }
             }
+
+            if (characterDatabase == null)
+                characterDatabase = AssetDatabase.LoadAssetAtPath<CharacterDatabase>("Assets/Data/CharacterDatabase.asset");
+            if (goldSummonTable == null)
+                goldSummonTable = AssetDatabase.LoadAssetAtPath<GachaTable>("Assets/Data/Gacha/GoldSummon.asset");
+            if (gemBasicSummonTable == null)
+                gemBasicSummonTable = AssetDatabase.LoadAssetAtPath<GachaTable>("Assets/Data/Gacha/GemBasicSummon.asset");
+            if (gemMidSummonTable == null)
+                gemMidSummonTable = AssetDatabase.LoadAssetAtPath<GachaTable>("Assets/Data/Gacha/GemMidSummon.asset");
+            if (gemAdvancedSummonTable == null)
+                gemAdvancedSummonTable = AssetDatabase.LoadAssetAtPath<GachaTable>("Assets/Data/Gacha/GemAdvancedSummon.asset");
+            if (fusionTestTarget == null)
+                fusionTestTarget = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Olympus/Zeus.asset");
         }
 #endif
     }
