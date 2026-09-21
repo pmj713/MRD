@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace MRD.Control
 {
@@ -35,6 +36,10 @@ namespace MRD.Control
 
         private void Update()
         {
+            // 마우스가 UI(버튼 등) 위에 있으면 그 클릭이 월드 쪽 선택/이동으로 새지 않게 막는다.
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                return;
+
             HandleLeftButton();
             HandleRightButton();
         }

@@ -68,6 +68,7 @@ namespace MRD.Game
 
             gameObject.AddComponent<GameHud>().Initialize(_game, selectionController, goldSummonTable,
                 gemBasicSummonTable, gemMidSummonTable, gemAdvancedSummonTable, fusionTestTarget);
+            gameObject.AddComponent<FusionBookUI>().Initialize(characterDatabase);
 
             PlaceStarterRoster();
 
