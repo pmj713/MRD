@@ -19,6 +19,7 @@ namespace MRD.Battle
         public bool IsDead => CurrentHealth <= 0f;
         public bool IsTargetable => !IsDead;
         public Vector3 Position => transform.position;
+        public int SpawnOrder { get; private set; }
 
         /// <summary>
         /// 공격 타이머가 한 번 채워질 때마다 발생. 실제 데미지 판정/투사체 생성은
@@ -35,6 +36,7 @@ namespace MRD.Battle
         public void Initialize(CharacterData source, StatModifier synergyBonus = default)
         {
             Source = source;
+            SpawnOrder = SpawnOrderCounter.Next();
             RecomputeEffectiveStats(synergyBonus);
 
             CurrentHealth = EffectiveStats.health;

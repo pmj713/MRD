@@ -304,16 +304,17 @@ namespace MRD.EditorTools
             return ok;
         }
 
-        // CombatManager가 attackRange(사거리) 안의 대상 중 "가장 가까운" 쪽을 고르는지,
-        // 사거리 밖 대상은 등록돼 있어도 무시하는지 검증한다. 등록 순서를 일부러 뒤섞어서
-        // "첫 등록"이 아니라 실제 거리로 고르는지까지 확인한다.
+        // CombatManager가 attackRange(사거리) 안의 대상 중 "가장 먼저 등장한(=가장 오래 살아있는)" 쪽을
+        // 고르는지 검증한다. 일부러 먼저 등장한 쪽을 더 멀리(그래도 사거리 안에) 두고, 나중에 등장한 쪽을
+        // 더 가깝게 둬서 - "거리"가 아니라 "등장 순서"로 고른다는 걸 구분해서 확인한다.
+        // 사거리 밖 대상은 등록돼 있어도(가장 먼저 등장했어도) 무시돼야 한다.
         private static bool CheckAttackRangeTargeting()
         {
             bool ok;
             var managerGo = new GameObject("SmokeTest_RangeCombatManager");
             var attackerGo = new GameObject("SmokeTest_RangeAttacker");
-            var nearGo = new GameObject("SmokeTest_RangeNear");
-            var midGo = new GameObject("SmokeTest_RangeMid");
+            var oldGo = new GameObject("SmokeTest_RangeOld");
+            var newGo = new GameObject("SmokeTest_RangeNew");
             var outOfRangeGo = new GameObject("SmokeTest_RangeOutOfRange");
             CharacterData attackerData = null;
 
@@ -336,39 +337,47 @@ namespace MRD.EditorTools
                 attacker.Initialize(attackerData);
                 attackerGo.transform.position = Vector3.zero;
 
-                var near = nearGo.AddComponent<BattleUnit>();
-                near.Initialize(attackerData);
-                nearGo.transform.position = new Vector3(3f, 0f, 0f); // 거리 3 (사거리 5 이내, 가장 가까움)
-
-                var mid = midGo.AddComponent<BattleUnit>();
-                mid.Initialize(attackerData);
-                midGo.transform.position = new Vector3(4.5f, 0f, 0f); // 거리 4.5 (사거리 이내지만 near보다 멂)
-
+                // outOfRange를 old/new보다 먼저 등장시켜서, "가장 먼저 등장" 규칙이 사거리 필터보다
+                // 우선하지 않는지(=사거리 밖이면 아무리 먼저 나왔어도 제외되는지)까지 같이 확인한다.
                 var outOfRange = outOfRangeGo.AddComponent<BattleUnit>();
                 outOfRange.Initialize(attackerData);
                 outOfRangeGo.transform.position = new Vector3(10f, 0f, 0f); // 거리 10 (사거리 밖)
 
-                manager.RegisterAlly(attacker);
-                manager.RegisterEnemyTarget(mid); // 일부러 가까운 순이 아니게 등록
-                manager.RegisterEnemyTarget(outOfRange);
-                manager.RegisterEnemyTarget(near);
+                var old = oldGo.AddComponent<BattleUnit>();
+                old.Initialize(attackerData); // outOfRange보다 나중, new보다 먼저 등장 (SpawnOrder가 더 작음)
+                oldGo.transform.position = new Vector3(4.5f, 0f, 0f); // 거리 4.5 (사거리 이내, new보다 멂)
 
-                float nearHealthBefore = near.CurrentHealth;
-                float midHealthBefore = mid.CurrentHealth;
+                var newer = newGo.AddComponent<BattleUnit>();
+                newer.Initialize(attackerData); // 가장 나중에 등장
+                newGo.transform.position = new Vector3(3f, 0f, 0f); // 거리 3 (사거리 이내, old보다 가까움)
+
+                manager.RegisterAlly(attacker);
+                manager.RegisterEnemyTarget(newer); // 등록 순서도 일부러 섞어서, 등록 순서가 아니라 SpawnOrder로 고르는지 확인
+                manager.RegisterEnemyTarget(outOfRange);
+                manager.RegisterEnemyTarget(old);
+
+                float oldHealthBefore = old.CurrentHealth;
+                float newHealthBefore = newer.CurrentHealth;
                 float outHealthBefore = outOfRange.CurrentHealth;
 
                 manager.ProcessAttack(attacker);
 
-                ok = LogAndCheck("사거리 안의 가장 가까운 대상이 피격됨",
-                    near.CurrentHealth < nearHealthBefore, near.CurrentHealth.ToString());
-                ok &= LogAndCheck("더 멀리 있는(사거리 안이지만 near보다 먼) 대상은 안 맞음",
-                    Mathf.Approximately(mid.CurrentHealth, midHealthBefore), mid.CurrentHealth.ToString());
-                ok &= LogAndCheck("사거리 밖 대상은 등록돼 있어도 안 맞음",
+                ok = LogAndCheck("사거리 안에서 더 멀지만 먼저 등장한 대상이 피격됨",
+                    old.CurrentHealth < oldHealthBefore, old.CurrentHealth.ToString());
+                ok &= LogAndCheck("더 가깝지만 나중에 등장한 대상은 안 맞음",
+                    Mathf.Approximately(newer.CurrentHealth, newHealthBefore), newer.CurrentHealth.ToString());
+                ok &= LogAndCheck("가장 먼저 등장했어도 사거리 밖이면 안 맞음",
                     Mathf.Approximately(outOfRange.CurrentHealth, outHealthBefore), outOfRange.CurrentHealth.ToString());
 
+                // old가 빠지면 사거리 안에 남은 newer가 다음으로 오래된 대상으로서 맞아야 한다.
+                manager.UnregisterEnemyTarget(old);
+                float newHealthBefore2 = newer.CurrentHealth;
+                manager.ProcessAttack(attacker);
+                ok &= LogAndCheck("가장 오래된 대상이 빠지면 다음으로 오래된(사거리 안) 대상이 피격됨",
+                    newer.CurrentHealth < newHealthBefore2, newer.CurrentHealth.ToString());
+
                 // 사거리 안에 아무도 안 남으면 아예 공격하지 않아야 한다 (사거리 무제한으로 새지 않는지 확인)
-                manager.UnregisterEnemyTarget(near);
-                manager.UnregisterEnemyTarget(mid);
+                manager.UnregisterEnemyTarget(newer);
                 float outHealthBefore2 = outOfRange.CurrentHealth;
                 manager.ProcessAttack(attacker);
                 ok &= LogAndCheck("사거리 안에 대상이 없으면 공격하지 않음",
@@ -378,8 +387,8 @@ namespace MRD.EditorTools
             {
                 Object.DestroyImmediate(managerGo);
                 Object.DestroyImmediate(attackerGo);
-                Object.DestroyImmediate(nearGo);
-                Object.DestroyImmediate(midGo);
+                Object.DestroyImmediate(oldGo);
+                Object.DestroyImmediate(newGo);
                 Object.DestroyImmediate(outOfRangeGo);
                 if (attackerData != null) Object.DestroyImmediate(attackerData);
             }

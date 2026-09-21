@@ -15,6 +15,9 @@ namespace MRD.Battle
         /// <summary>사거리 판정에 쓰는 현재 월드 좌표.</summary>
         Vector3 Position { get; }
 
+        /// <summary>등장(초기화) 순서. 값이 작을수록 먼저 등장한(=더 오래 살아있는) 대상이다.</summary>
+        int SpawnOrder { get; }
+
         void TakePhysicalDamage(float rawDamage);
         void TakeMagicDamage(float rawDamage);
         void TakeTrueDamage(float rawDamage);

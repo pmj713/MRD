@@ -17,6 +17,7 @@ namespace MRD.Wave
         public bool IsDead => CurrentHealth <= 0f;
         public bool IsTargetable => !IsDead;
         public Vector3 Position => transform.position;
+        public int SpawnOrder { get; private set; }
 
         public event Action<EnemyUnit> OnDeath;
 
@@ -24,6 +25,7 @@ namespace MRD.Wave
         {
             Source = source;
             SpawnRound = round;
+            SpawnOrder = SpawnOrderCounter.Next();
 
             float growth = Mathf.Pow(source.healthGrowthPerRound, Mathf.Max(0, round - 1));
             CurrentHealth = source.baseHealth * growth;
