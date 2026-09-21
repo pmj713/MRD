@@ -133,7 +133,10 @@ namespace MRD.Game
             Debug.Log($"[MRD] {round}라운드 시작{suffix}");
         }
 
-        private static void SetupCamera()
+        // 배치 격자 시작 지점(gridOriginZ) 기준으로, 예전(그리드가 원점에 있던 시절)과 똑같은 상대 각도로
+        // 카메라를 배치한다 - 그래야 격자를 넓히거나 옮겨도 시작 로스터가 항상 화면(특히 하단 UI 바 위쪽)에
+        // 잘 보이는 위치에 놓인다. 순찰 경로 쪽 더 넓은 시야는 엣지 팬으로 확인한다.
+        private void SetupCamera()
         {
             CreateGround();
 
@@ -141,9 +144,9 @@ namespace MRD.Game
             if (cam == null) return;
 
             cam.orthographic = false;
-            cam.fieldOfView = 55f;
-            cam.transform.position = new Vector3(0f, 20f, -26f);
-            cam.transform.LookAt(new Vector3(0f, 0f, -8f));
+            cam.fieldOfView = 50f;
+            cam.transform.position = new Vector3(0f, 9f, gridOriginZ - 5f);
+            cam.transform.LookAt(new Vector3(0f, 0f, gridOriginZ + 4f));
         }
 
         // 3D 공간에서 오브젝트들이 허공에 떠 있는 것처럼 보이지 않도록 넣어두는 임시 바닥.
