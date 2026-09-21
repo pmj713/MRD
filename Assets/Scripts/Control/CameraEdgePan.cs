@@ -11,8 +11,8 @@ namespace MRD.Control
         [SerializeField] private Camera targetCamera;
         [SerializeField] private float edgeThicknessPixels = 20f;
         [SerializeField] private float panSpeed = 12f;
-        [SerializeField] private Vector2 xLimits = new Vector2(-15f, 15f);
-        [SerializeField] private Vector2 zLimits = new Vector2(-15f, 15f);
+        [SerializeField] private Vector2 xLimits = new Vector2(-20f, 20f);
+        [SerializeField] private Vector2 zLimits = new Vector2(-23f, 15f);
 
         private void Awake()
         {

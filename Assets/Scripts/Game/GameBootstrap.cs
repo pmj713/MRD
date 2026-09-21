@@ -55,6 +55,7 @@ namespace MRD.Game
             SetupCamera();
             var selectionController = gameObject.AddComponent<SelectionController>();
             gameObject.AddComponent<CameraEdgePan>();
+            gameObject.AddComponent<CameraZoom>();
 
             var gameGo = new GameObject("GameManager");
             _game = gameGo.AddComponent<GameManager>();
