@@ -5,6 +5,7 @@ using UnityEngine.EventSystems;
 using MRD.Data;
 using MRD.Gacha;
 using MRD.Game;
+using MRD.Battle;
 using MRD.Control;
 using Selectable = MRD.Control.Selectable; // UnityEngine.UI에도 같은 이름의 클래스(Selectable)가 있어 명시적으로 구분
 
@@ -30,12 +31,17 @@ namespace MRD.UI
 
         private GameObject _unitInfoPanel;
         private Text _unitInfoText;
+        private Transform _unitActionRow;
         private Selectable _displayedUnit; // 단일 선택일 때만 채워짐 (다중 선택/선택 없음이면 null)
 
-        public void Initialize(GameManager game, SelectionController selectionController, GachaTable goldSummon,
-            GachaTable gemBasicSummon, GachaTable gemMidSummon, GachaTable gemAdvancedSummon, CharacterData fusionTestTarget)
+        private CharacterDatabase _database;
+
+        public void Initialize(GameManager game, SelectionController selectionController, CharacterDatabase database,
+            GachaTable goldSummon, GachaTable gemBasicSummon, GachaTable gemMidSummon, GachaTable gemAdvancedSummon,
+            CharacterData fusionTestTarget)
         {
             _game = game;
+            _database = database;
 
             EnsureEventSystem();
             var canvas = CreateCanvas();
@@ -80,18 +86,62 @@ namespace MRD.UI
             {
                 _displayedUnit = selection[0];
                 _unitInfoPanel.SetActive(true);
+                RebuildUnitActionButtons(_displayedUnit.Unit);
             }
             else if (selection.Count > 1)
             {
                 _displayedUnit = null;
                 _unitInfoPanel.SetActive(true);
                 _unitInfoText.text = $"{selection.Count}개 유닛 선택됨";
+                RebuildUnitActionButtons(null);
             }
             else
             {
                 _displayedUnit = null;
                 _unitInfoPanel.SetActive(false);
+                RebuildUnitActionButtons(null);
             }
+        }
+
+        // 선택된 유닛에 대해 "판매"와 "조합: <다음 유닛>" 버튼을 다시 만든다.
+        // 선택이 바뀔 때만 호출하면 되므로(체력 등과 달리 매 프레임 갱신할 필요 없음) HandleSelectionChanged에서만 부른다.
+        private void RebuildUnitActionButtons(BattleUnit unit)
+        {
+            foreach (Transform child in _unitActionRow)
+                Destroy(child.gameObject);
+
+            if (unit == null || unit.Source == null) return;
+            var data = unit.Source;
+
+            int sellValue = _game.GetSellValue(data);
+            CreateSmallButton(_unitActionRow, $"판매 (+{sellValue}G)", 0, () => OnSellClicked(unit, data));
+
+            if (_database != null)
+            {
+                var targets = _database.FindFusionTargetsUsing(data);
+                for (int i = 0; i < targets.Count; i++)
+                {
+                    var target = targets[i];
+                    CreateSmallButton(_unitActionRow, $"조합: {target.characterName}", i + 1, () => OnUnitFuseClicked(target));
+                }
+            }
+        }
+
+        private void OnSellClicked(BattleUnit unit, CharacterData data)
+        {
+            if (!_game.SellUnit(unit)) return;
+
+            ShowResult($"{data.characterName} 판매 완료 (+{_game.GetSellValue(data)}G)");
+            _displayedUnit = null;
+            _unitInfoPanel.SetActive(false);
+            RebuildUnitActionButtons(null);
+        }
+
+        // 조합서 버튼과 달리, 재료/재화가 부족하면 아무 반응도 하지 않는다 (요청 사양).
+        private void OnUnitFuseClicked(CharacterData target)
+        {
+            if (_game.TryFuseCharacter(target))
+                ShowResult($"{target.characterName} 조합 성공!");
         }
 
         // 단일 선택 중인 유닛의 체력 등은 매 프레임 바뀌므로 여기서 계속 갱신한다.
@@ -185,14 +235,25 @@ namespace MRD.UI
             rect.anchorMax = new Vector2(0f, 0f);
             rect.pivot = new Vector2(0f, 0f);
             rect.anchoredPosition = new Vector2(20f, 120f);
-            rect.sizeDelta = new Vector2(340f, 160f);
+            rect.sizeDelta = new Vector2(340f, 240f);
 
             var image = panelGo.AddComponent<Image>();
             image.color = new Color(0.08f, 0.08f, 0.1f, 0.85f);
 
             _unitInfoText = CreateText(panelGo.transform, "", new Vector2(0f, 1f), new Vector2(12f, -12f));
             _unitInfoText.fontSize = 18;
-            _unitInfoText.rectTransform.sizeDelta = new Vector2(316f, 136f); // 부모 패널 안쪽 여백만큼 줄인 크기 (CreateText 기본값 덮어씀)
+            _unitInfoText.rectTransform.sizeDelta = new Vector2(316f, 130f); // 부모 패널 안쪽 여백만큼 줄인 크기 (CreateText 기본값 덮어씀)
+
+            // 판매/조합 버튼을 세로로 쌓는 영역 (0~3개 정도, 대상 유닛에 따라 개수가 바뀐다).
+            var actionRowGo = new GameObject("ActionButtons");
+            actionRowGo.transform.SetParent(panelGo.transform, false);
+            var actionRowRect = actionRowGo.AddComponent<RectTransform>();
+            actionRowRect.anchorMin = new Vector2(0f, 0f);
+            actionRowRect.anchorMax = new Vector2(0f, 0f);
+            actionRowRect.pivot = new Vector2(0f, 0f);
+            actionRowRect.anchoredPosition = new Vector2(12f, 12f);
+            actionRowRect.sizeDelta = new Vector2(316f, 86f);
+            _unitActionRow = actionRowGo.transform;
 
             _unitInfoPanel = panelGo;
             _unitInfoPanel.SetActive(false);
@@ -295,6 +356,44 @@ namespace MRD.UI
             txt.text = label;
             txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             txt.fontSize = 15;
+            txt.alignment = TextAnchor.MiddleCenter;
+            txt.color = Color.white;
+        }
+
+        // 유닛 정보창의 판매/조합 버튼처럼, 부모 영역(_unitActionRow) 안에서 index번째 줄에 놓이는 작은 버튼.
+        private static void CreateSmallButton(Transform parent, string label, int index, UnityEngine.Events.UnityAction onClick)
+        {
+            const float height = 24f;
+            const float spacing = 4f;
+
+            var go = new GameObject("Button_" + label);
+            go.transform.SetParent(parent, false);
+
+            var rect = go.AddComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = new Vector2(0f, -(height + spacing) * index);
+            rect.sizeDelta = new Vector2(316f, height);
+
+            var image = go.AddComponent<Image>();
+            image.color = new Color(0.2f, 0.22f, 0.3f, 0.95f);
+
+            var button = go.AddComponent<Button>();
+            button.onClick.AddListener(onClick);
+
+            var textGo = new GameObject("Label");
+            textGo.transform.SetParent(go.transform, false);
+            var textRect = textGo.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            var txt = textGo.AddComponent<Text>();
+            txt.text = label;
+            txt.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            txt.fontSize = 14;
             txt.alignment = TextAnchor.MiddleCenter;
             txt.color = Color.white;
         }

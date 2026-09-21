@@ -39,6 +39,20 @@ namespace MRD.Game
         [Header("등록할 진영 시너지 표")]
         [SerializeField] private List<FactionSynergyData> factionSynergies = new List<FactionSynergyData>();
 
+        // 등급별 기본 가치 - 판매가는 이 값의 SellRefundRatio 비율만큼 골드로 돌려준다.
+        private static readonly Dictionary<Rarity, int> BaseValueByRarity = new Dictionary<Rarity, int>
+        {
+            { Rarity.Normal, 50 },
+            { Rarity.Magic, 100 },
+            { Rarity.Rare, 200 },
+            { Rarity.Unique, 400 },
+            { Rarity.Legend, 800 },
+            { Rarity.Hidden, 1600 },
+            { Rarity.Special, 3200 },
+        };
+
+        private const float SellRefundRatio = 0.5f;
+
         public CombatManager CombatManager => combatManager;
         public SynergyManager SynergyManager => synergyManager;
         public PlacementGrid PlacementGrid => placementGrid;
@@ -168,6 +182,7 @@ namespace MRD.Game
             }
 
             Inventory.Add(rolled);
+            AutoPlaceIfPossible(rolled);
             result = rolled;
             OnCharacterSummoned?.Invoke(rolled);
             return true;
@@ -207,7 +222,38 @@ namespace MRD.Game
             SpendGems(recipe.gemCost);
 
             Inventory.Add(target);
+            AutoPlaceIfPossible(target);
             OnCharacterFused?.Invoke(target);
+            return true;
+        }
+
+        /// <summary>빈 슬롯이 있으면 해당 유닛을 필드에 자동으로 배치한다 (소환/조합으로 얻은 유닛이 바로 눈에 보이도록).</summary>
+        private void AutoPlaceIfPossible(CharacterData data)
+        {
+            if (!placementGrid.TryFindEmptySlot(out int x, out int y)) return;
+            PlaceUnit(x, y, data, out _);
+        }
+
+        /// <summary>해당 캐릭터를 판매했을 때 돌려받는 골드(등급 기본 가치의 일정 비율)를 계산한다.</summary>
+        public int GetSellValue(CharacterData data)
+        {
+            if (data == null) return 0;
+            int baseValue = BaseValueByRarity.TryGetValue(data.rarity, out var v) ? v : 0;
+            return Mathf.RoundToInt(baseValue * SellRefundRatio);
+        }
+
+        /// <summary>필드에 배치된 유닛을 판매한다. 슬롯에서 제거하고 가치의 일정 비율만큼 골드를 지급한다.</summary>
+        public bool SellUnit(BattleUnit unit)
+        {
+            EnsureInitialized();
+
+            if (unit == null || unit.Source == null) return false;
+            if (!placementGrid.TryFindSlotOf(unit, out int x, out int y)) return false;
+
+            int refund = GetSellValue(unit.Source);
+            if (!RemoveUnit(x, y)) return false;
+
+            AddGold(refund);
             return true;
         }
 

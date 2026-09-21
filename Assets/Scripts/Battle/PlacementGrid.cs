@@ -38,6 +38,43 @@ namespace MRD.Battle
 
         public BattleUnit GetUnitAt(int x, int y) => _slots.TryGetValue((x, y), out var unit) ? unit : null;
 
+        /// <summary>비어 있는 슬롯을 하나 찾는다 (소환 등으로 얻은 유닛을 자동 배치할 때 사용).</summary>
+        public bool TryFindEmptySlot(out int x, out int y)
+        {
+            for (int yy = 0; yy < height; yy++)
+            {
+                for (int xx = 0; xx < width; xx++)
+                {
+                    if (!IsSlotOccupied(xx, yy))
+                    {
+                        x = xx;
+                        y = yy;
+                        return true;
+                    }
+                }
+            }
+            x = 0;
+            y = 0;
+            return false;
+        }
+
+        /// <summary>주어진 유닛이 배치돼 있는 슬롯 좌표를 찾는다 (판매 등 유닛 참조로부터 슬롯을 역추적할 때 사용).</summary>
+        public bool TryFindSlotOf(BattleUnit unit, out int x, out int y)
+        {
+            foreach (var kv in _slots)
+            {
+                if (kv.Value == unit)
+                {
+                    x = kv.Key.x;
+                    y = kv.Key.y;
+                    return true;
+                }
+            }
+            x = 0;
+            y = 0;
+            return false;
+        }
+
         /// <summary>빈 슬롯에 새 유닛을 배치한다. 성공하면 CombatManager에 아군으로 자동 등록된다.</summary>
         public bool TryPlaceUnit(int x, int y, CharacterData data, out BattleUnit placedUnit)
         {

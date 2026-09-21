@@ -24,5 +24,27 @@ namespace MRD.Gacha
             }
             return result;
         }
+
+        /// <summary>주어진 유닛을 조합 재료로 사용하는 상위 유닛들을 찾는다 (유닛 정보창의 "조합" 버튼 등에 사용).</summary>
+        public List<CharacterData> FindFusionTargetsUsing(CharacterData material)
+        {
+            var result = new List<CharacterData>();
+            if (material == null) return result;
+
+            foreach (var candidate in allCharacters)
+            {
+                if (candidate == null || candidate.fusionRecipe?.requiredCharacters == null) continue;
+
+                foreach (var required in candidate.fusionRecipe.requiredCharacters)
+                {
+                    if (required == material)
+                    {
+                        result.Add(candidate);
+                        break;
+                    }
+                }
+            }
+            return result;
+        }
     }
 }

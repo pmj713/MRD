@@ -78,6 +78,7 @@ namespace MRD.EditorTools
             ok &= CheckGachaAndFusion(heracles, zeus);
             ok &= CheckFusionChains();
             ok &= CheckFuseSameMaterialTriple();
+            ok &= CheckSummonAutoPlaceAndSell();
             ok &= CheckSelectionMath();
             ok &= CheckUnitMover();
             // 씬을 다시 로드하면 그 전에 로드해둔 CharacterData 참조가 무효화될 수 있으니 항상 마지막에 실행한다.
@@ -1097,6 +1098,61 @@ namespace MRD.EditorTools
                 ok &= LogAndCheck("조합 후 보석 300 소모", game.Gems == 0, game.Gems.ToString());
                 ok &= LogAndCheck("조합 후 헤라클레스 재료 소모됨", game.Inventory.GetCount(heraclesData) == 0, game.Inventory.GetCount(heraclesData).ToString());
                 ok &= LogAndCheck("조합 결과 제우스가 보유 목록에 추가됨", game.Inventory.GetCount(zeusData) == 1, game.Inventory.GetCount(zeusData).ToString());
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+
+            return ok;
+        }
+
+        // 소환/조합으로 얻은 유닛이 실제로 격자에 자동 배치되는지, 판매 시 골드가 환급되고 슬롯이 비워지는지,
+        // CharacterDatabase의 조합 역방향 조회(어떤 재료가 어느 유닛으로 조합되는지)가 맞는지 검증한다.
+        private static bool CheckSummonAutoPlaceAndSell()
+        {
+            var database = AssetDatabase.LoadAssetAtPath<CharacterDatabase>("Assets/Data/CharacterDatabase.asset");
+            var goldSummon = AssetDatabase.LoadAssetAtPath<GachaTable>("Assets/Data/Gacha/GoldSummon.asset");
+            var heraclesData = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Olympus/Heracles.asset");
+            var zeusData = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Olympus/Zeus.asset");
+
+            bool ok = true;
+
+            // 헤라클레스는 제우스 조합 재료이므로, 역방향 조회 시 제우스가 나와야 한다.
+            var targets = database.FindFusionTargetsUsing(heraclesData);
+            ok &= LogAndCheck("헤라클레스를 재료로 쓰는 조합 대상에 제우스 포함", targets.Contains(zeusData),
+                string.Join(", ", targets.ConvertAll(t => t.characterName)));
+
+            var go = new GameObject("SmokeTest_GameManager_AutoPlaceSell");
+            try
+            {
+                var game = go.AddComponent<GameManager>();
+                game.Configure(3, 3, null, null, null, null, new List<FactionSynergyData>());
+                game.SetCharacterDatabase(database);
+
+                game.GrantGold(1000);
+                bool summoned = game.TrySummon(goldSummon, out var summonedCharacter);
+                ok &= LogAndCheck("소환 성공", summoned, summoned.ToString());
+
+                // 격자가 비어있는 상태에서 첫 소환이므로 (0,0) 슬롯에 자동 배치되어야 한다.
+                var placedUnit = game.PlacementGrid.GetUnitAt(0, 0);
+                ok &= LogAndCheck("소환된 유닛이 격자(0,0)에 자동 배치됨",
+                    placedUnit != null && placedUnit.Source == summonedCharacter,
+                    placedUnit != null ? placedUnit.Source.characterName : "null");
+
+                if (placedUnit != null)
+                {
+                    int expectedRefund = game.GetSellValue(summonedCharacter);
+                    ok &= LogAndCheck("판매 가치가 0보다 큼", expectedRefund > 0, expectedRefund.ToString());
+
+                    int goldBeforeSell = game.Gold;
+                    bool sold = game.SellUnit(placedUnit);
+                    ok &= LogAndCheck("배치된 유닛 판매 성공", sold, sold.ToString());
+                    ok &= LogAndCheck("판매 시 가치의 절반만큼 골드 환급",
+                        game.Gold == goldBeforeSell + expectedRefund, game.Gold.ToString());
+                    ok &= LogAndCheck("판매 후 슬롯에서 제거됨",
+                        !game.PlacementGrid.TryFindSlotOf(placedUnit, out _, out _), "slot cleared");
+                }
             }
             finally
             {

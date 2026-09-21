@@ -66,7 +66,7 @@ namespace MRD.Game
             _game.OnGoldChanged += gold => Debug.Log($"[MRD] 골드: {gold}");
             _game.OnGameEnded += (victory, reason) => Debug.Log(victory ? $"[MRD] 승리! {reason}" : $"[MRD] 패배: {reason}");
 
-            gameObject.AddComponent<GameHud>().Initialize(_game, selectionController, goldSummonTable,
+            gameObject.AddComponent<GameHud>().Initialize(_game, selectionController, characterDatabase, goldSummonTable,
                 gemBasicSummonTable, gemMidSummonTable, gemAdvancedSummonTable, fusionTestTarget);
             gameObject.AddComponent<FusionBookUI>().Initialize(characterDatabase);
 
