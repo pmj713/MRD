@@ -8,9 +8,9 @@ using MRD.Gacha;
 namespace MRD.UI
 {
     /// <summary>
-    /// 지정한 키(기본 R)로 여닫는 조합서 패널. 왼쪽에서 진영을 누르면 그 아래로 레어/유니크/전설
-    /// 등급 버튼이 펼쳐지고, 등급을 누르면 오른쪽에 "재료 + 재료 = 결과" 형태로 조합식을 보여준다.
-    /// 레어는 조합이 아니라 소환 전용이라 안내 문구만 나온다.
+    /// 지정한 키(기본 R)로 여닫는 조합서 패널. 왼쪽에서 진영을 누르면 그 아래로 노말/매직/레어/유니크/전설
+    /// 등급 버튼이 아코디언처럼 펼쳐지고(한 번에 하나의 진영만 펼쳐짐), 등급을 누르면 오른쪽에
+    /// "재료 + 재료 = 결과" 형태로 조합식을 보여준다. 노말처럼 조합식이 없는 유닛은 소환 전용 안내가 나온다.
     /// </summary>
     public class FusionBookUI : MonoBehaviour
     {
@@ -19,7 +19,7 @@ namespace MRD.UI
             Faction.Asgard, Faction.ThroneOfRa, Faction.NineRealms, Faction.AbyssalArchive, Faction.Covenant,
         };
 
-        private static readonly Rarity[] ShownTiers = { Rarity.Rare, Rarity.Unique, Rarity.Legend };
+        private static readonly Rarity[] ShownTiers = { Rarity.Normal, Rarity.Magic, Rarity.Rare, Rarity.Unique, Rarity.Legend };
 
         private static readonly Dictionary<Faction, string> FactionNames = new Dictionary<Faction, string>
         {
@@ -33,6 +33,8 @@ namespace MRD.UI
 
         private static readonly Dictionary<Rarity, string> TierNames = new Dictionary<Rarity, string>
         {
+            { Rarity.Normal, "노말" },
+            { Rarity.Magic, "매직" },
             { Rarity.Rare, "레어" },
             { Rarity.Unique, "유니크" },
             { Rarity.Legend, "전설" },
@@ -60,11 +62,16 @@ namespace MRD.UI
                 _panelRoot.SetActive(!_panelRoot.activeSelf);
         }
 
+        // 한 번에 하나의 진영만 펼쳐지도록(아코디언) 다른 진영은 접는다.
         private void ToggleFactionGroup(Faction faction)
         {
-            var buttons = _tierButtons[faction];
-            bool show = !buttons[0].activeSelf;
-            foreach (var b in buttons) b.SetActive(show);
+            bool willShow = !_tierButtons[faction][0].activeSelf;
+
+            foreach (var kv in _tierButtons)
+            {
+                bool show = kv.Key == faction && willShow;
+                foreach (var b in kv.Value) b.SetActive(show);
+            }
         }
 
         private void ShowTierRecipes(Faction faction, Rarity tier)
@@ -81,18 +88,12 @@ namespace MRD.UI
                 return;
             }
 
-            if (tier == Rarity.Rare)
-            {
-                CreateRecipeRow("레어 등급은 조합이 아니라 소환으로만 얻습니다.");
-                return;
-            }
-
             foreach (var unit in units)
             {
                 var recipe = unit.fusionRecipe;
                 if (recipe?.requiredCharacters == null || recipe.requiredCharacters.Length == 0)
                 {
-                    CreateRecipeRow($"{unit.characterName} : 조합식 없음");
+                    CreateRecipeRow($"{unit.characterName} : 조합식 없음 (소환 전용)");
                     continue;
                 }
 
