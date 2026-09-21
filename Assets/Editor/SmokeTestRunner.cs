@@ -79,6 +79,7 @@ namespace MRD.EditorTools
             ok &= CheckFusionChains();
             ok &= CheckFuseSameMaterialTriple();
             ok &= CheckSummonAutoPlaceAndSell();
+            ok &= CheckFuseRemovesFieldMaterials();
             ok &= CheckSelectionMath();
             ok &= CheckUnitMover();
             // 씬을 다시 로드하면 그 전에 로드해둔 CharacterData 참조가 무효화될 수 있으니 항상 마지막에 실행한다.
@@ -1153,6 +1154,49 @@ namespace MRD.EditorTools
                     ok &= LogAndCheck("판매 후 슬롯에서 제거됨",
                         !game.PlacementGrid.TryFindSlotOf(placedUnit, out _, out _), "slot cleared");
                 }
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+
+            return ok;
+        }
+
+        // 조합 재료로 소모된 유닛이 필드에 배치돼 있었다면 화면(격자)에서도 사라지는지 검증한다.
+        // 재료 요구량(3)보다 1마리 많은 4마리를 필드에 두고, 그중 특정 유닛을 지정해서 조합하면
+        // 그 유닛이 반드시(다른 동일 유닛보다 우선해서) 사라지는지도 함께 확인한다.
+        private static bool CheckFuseRemovesFieldMaterials()
+        {
+            var einherjar = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Asgard/Einherjar.asset");
+            var valkyrie = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Asgard/Valkyrie.asset");
+
+            var go = new GameObject("SmokeTest_FuseFieldRemoval");
+            bool ok;
+            try
+            {
+                var game = go.AddComponent<GameManager>();
+                game.Configure(4, 1, null, null, null, null, new List<FactionSynergyData>());
+
+                game.PlaceUnit(0, 0, einherjar, out var unitA);
+                game.PlaceUnit(1, 0, einherjar, out _);
+                game.PlaceUnit(2, 0, einherjar, out _);
+                game.PlaceUnit(3, 0, einherjar, out _);
+                game.Inventory.Add(einherjar, 4);
+                game.GrantGold(50);
+
+                bool fused = game.TryFuseCharacter(valkyrie, unitA);
+                ok = LogAndCheck("지정 유닛을 재료로 조합 성공", fused, fused.ToString());
+                ok &= LogAndCheck("지정했던 유닛(unitA)이 화면(필드)에서 파괴됨", unitA == null, (unitA == null).ToString());
+
+                int remainingEinherjar = 0;
+                for (int x = 0; x < 4; x++)
+                {
+                    var u = game.PlacementGrid.GetUnitAt(x, 0);
+                    if (u != null && u.Source == einherjar) remainingEinherjar++;
+                }
+                ok &= LogAndCheck("필드에 아인헤리안 전사가 1마리만 남음(4마리 중 3마리 소모)",
+                    remainingEinherjar == 1, remainingEinherjar.ToString());
             }
             finally
             {

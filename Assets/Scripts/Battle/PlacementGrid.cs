@@ -75,6 +75,23 @@ namespace MRD.Battle
             return false;
         }
 
+        /// <summary>주어진 CharacterData와 일치하는 배치된 유닛의 슬롯을 하나 찾는다 (조합 재료 소모 시 필드에서도 제거할 대상을 찾을 때 사용).</summary>
+        public bool TryFindSlotOfData(CharacterData data, out int x, out int y)
+        {
+            foreach (var kv in _slots)
+            {
+                if (kv.Value.Source == data)
+                {
+                    x = kv.Key.x;
+                    y = kv.Key.y;
+                    return true;
+                }
+            }
+            x = 0;
+            y = 0;
+            return false;
+        }
+
         /// <summary>빈 슬롯에 새 유닛을 배치한다. 성공하면 CombatManager에 아군으로 자동 등록된다.</summary>
         public bool TryPlaceUnit(int x, int y, CharacterData data, out BattleUnit placedUnit)
         {

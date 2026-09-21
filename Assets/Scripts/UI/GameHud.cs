@@ -122,7 +122,7 @@ namespace MRD.UI
                 for (int i = 0; i < targets.Count; i++)
                 {
                     var target = targets[i];
-                    CreateSmallButton(_unitActionRow, $"조합: {target.characterName}", i + 1, () => OnUnitFuseClicked(target));
+                    CreateSmallButton(_unitActionRow, $"조합: {target.characterName}", i + 1, () => OnUnitFuseClicked(unit, target));
                 }
             }
         }
@@ -138,10 +138,15 @@ namespace MRD.UI
         }
 
         // 조합서 버튼과 달리, 재료/재화가 부족하면 아무 반응도 하지 않는다 (요청 사양).
-        private void OnUnitFuseClicked(CharacterData target)
+        // 이 버튼은 항상 선택 중인 unit 자신을 재료로 쓰는 조합이므로, 성공하면 그 유닛은 화면에서도 사라진다.
+        private void OnUnitFuseClicked(BattleUnit sourceUnit, CharacterData target)
         {
-            if (_game.TryFuseCharacter(target))
-                ShowResult($"{target.characterName} 조합 성공!");
+            if (!_game.TryFuseCharacter(target, sourceUnit)) return;
+
+            ShowResult($"{target.characterName} 조합 성공!");
+            _displayedUnit = null;
+            _unitInfoPanel.SetActive(false);
+            RebuildUnitActionButtons(null);
         }
 
         // 단일 선택 중인 유닛의 체력 등은 매 프레임 바뀌므로 여기서 계속 갱신한다.

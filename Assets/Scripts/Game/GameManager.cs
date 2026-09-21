@@ -191,8 +191,11 @@ namespace MRD.Game
         /// <summary>
         /// target의 조합 레시피(FusionRecipe)대로 재료와 재화가 충분한지 확인하고, 충분하면 소모한 뒤
         /// target을 보유 목록에 추가한다. 재료가 하나라도 부족하면 아무것도 소모하지 않고 실패한다.
+        /// 재료로 소모된 유닛이 필드에 배치돼 있었다면 화면에서도 사라진다.
+        /// preferredMaterialUnit을 지정하면(유닛 정보창의 "조합" 버튼처럼 특정 유닛을 클릭해서 조합한 경우),
+        /// 그 유닛이 재료 중 하나와 일치할 때 다른 동일 유닛보다 그 유닛을 먼저 소모 대상으로 삼는다.
         /// </summary>
-        public bool TryFuseCharacter(CharacterData target)
+        public bool TryFuseCharacter(CharacterData target, BattleUnit preferredMaterialUnit = null)
         {
             EnsureInitialized();
 
@@ -216,7 +219,10 @@ namespace MRD.Game
             if (Gold < recipe.goldCost || Gems < recipe.gemCost) return false;
 
             foreach (var kv in required)
+            {
                 Inventory.TryConsume(kv.Key, kv.Value);
+                RemoveFieldMaterials(kv.Key, kv.Value, preferredMaterialUnit);
+            }
 
             SpendGold(recipe.goldCost);
             SpendGems(recipe.gemCost);
@@ -225,6 +231,25 @@ namespace MRD.Game
             AutoPlaceIfPossible(target);
             OnCharacterFused?.Invoke(target);
             return true;
+        }
+
+        /// <summary>조합 재료로 소모된 만큼 필드에 배치된 유닛도 제거한다 (인벤토리 수량과 화면을 일치시킨다).</summary>
+        private void RemoveFieldMaterials(CharacterData material, int count, BattleUnit preferredUnit)
+        {
+            int remaining = count;
+
+            if (preferredUnit != null && preferredUnit.Source == material &&
+                placementGrid.TryFindSlotOf(preferredUnit, out int px, out int py))
+            {
+                RemoveUnit(px, py);
+                remaining--;
+            }
+
+            for (int i = 0; i < remaining; i++)
+            {
+                if (!placementGrid.TryFindSlotOfData(material, out int x, out int y)) break;
+                RemoveUnit(x, y);
+            }
         }
 
         /// <summary>빈 슬롯이 있으면 해당 유닛을 필드에 자동으로 배치한다 (소환/조합으로 얻은 유닛이 바로 눈에 보이도록).</summary>
