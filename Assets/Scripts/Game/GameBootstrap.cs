@@ -43,6 +43,7 @@ namespace MRD.Game
 #endif
             SetupCamera();
             gameObject.AddComponent<SelectionController>();
+            gameObject.AddComponent<CameraEdgePan>();
 
             var gameGo = new GameObject("GameManager");
             _game = gameGo.AddComponent<GameManager>();
