@@ -77,6 +77,7 @@ namespace MRD.EditorTools
             ok &= CheckGameManager(spartan, heracles, zeus);
             ok &= CheckGachaAndFusion(heracles, zeus);
             ok &= CheckFusionChains();
+            ok &= CheckFuseSameMaterialTriple();
             ok &= CheckSelectionMath();
             ok &= CheckUnitMover();
             // 씬을 다시 로드하면 그 전에 로드해둔 CharacterData 참조가 무효화될 수 있으니 항상 마지막에 실행한다.
@@ -931,6 +932,58 @@ namespace MRD.EditorTools
                 new[] { ("Assets/Data/Characters/AbyssalArchive/Gilgamesh.asset", "길가메시"), ("Assets/Data/Characters/AbyssalArchive/Enkidu.asset", "엔키두") }, 200);
             ok &= CheckFusionRecipe("Assets/Data/Characters/AbyssalArchive/Enlil.asset", "엔릴",
                 new[] { ("Assets/Data/Characters/AbyssalArchive/Ishtar.asset", "이슈타르") }, 400);
+
+            // 노멀 -> 매직 -> 레어까지 이어지는 하위 등급 조합 체인 검증 (같은 재료 3개를 요구).
+            ok &= CheckFusionRecipe("Assets/Data/Characters/Asgard/Valkyrie.asset", "발키리 시종",
+                new[] { ("Assets/Data/Characters/Asgard/Einherjar.asset", "아인헤리안 전사"),
+                        ("Assets/Data/Characters/Asgard/Einherjar.asset", "아인헤리안 전사"),
+                        ("Assets/Data/Characters/Asgard/Einherjar.asset", "아인헤리안 전사") }, 50);
+            ok &= CheckFusionRecipe("Assets/Data/Characters/Asgard/Tyr.asset", "티르",
+                new[] { ("Assets/Data/Characters/Asgard/Valkyrie.asset", "발키리 시종"),
+                        ("Assets/Data/Characters/Asgard/Valkyrie.asset", "발키리 시종"),
+                        ("Assets/Data/Characters/Asgard/Valkyrie.asset", "발키리 시종") }, 100);
+
+            return ok;
+        }
+
+        // 재료로 "같은 유닛 3마리"를 요구하는 조합(노멀 3개 -> 매직)이 GameManager를 통해 실제로 동작하는지 확인한다.
+        private static bool CheckFuseSameMaterialTriple()
+        {
+            var einherjar = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Asgard/Einherjar.asset");
+            var valkyrie = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Asgard/Valkyrie.asset");
+
+            var go = new GameObject("SmokeTest_FuseSameMaterial");
+            bool ok;
+            try
+            {
+                var game = go.AddComponent<GameManager>();
+                game.Configure(3, 3, null, null, null, null, new List<FactionSynergyData>());
+
+                bool fusedWithTwo = false;
+                if (einherjar != null && valkyrie != null)
+                {
+                    game.Inventory.Add(einherjar, 2); // 2마리뿐이면 부족해야 한다
+                    fusedWithTwo = game.TryFuseCharacter(valkyrie);
+                }
+                ok = LogAndCheck("같은 재료 2마리로는 조합 실패", !fusedWithTwo, fusedWithTwo.ToString());
+
+                bool fusedWithThree = false;
+                if (einherjar != null && valkyrie != null)
+                {
+                    game.Inventory.Add(einherjar, 1); // 총 3마리로 채움
+                    game.GrantGold(50);
+                    fusedWithThree = game.TryFuseCharacter(valkyrie);
+                }
+                ok &= LogAndCheck("같은 재료 3마리 + 골드로 조합 성공", fusedWithThree, fusedWithThree.ToString());
+                ok &= LogAndCheck("조합 후 아인헤리안 전사 재료 전부 소모", einherjar == null || game.Inventory.GetCount(einherjar) == 0,
+                    einherjar == null ? "asset missing" : game.Inventory.GetCount(einherjar).ToString());
+                ok &= LogAndCheck("조합 결과 발키리 시종이 보유 목록에 추가됨", valkyrie == null || game.Inventory.GetCount(valkyrie) == 1,
+                    valkyrie == null ? "asset missing" : game.Inventory.GetCount(valkyrie).ToString());
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
 
             return ok;
         }

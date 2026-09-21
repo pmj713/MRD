@@ -40,6 +40,9 @@ MonoBehaviour:
     cooldown: 0
     triggerChancePercent: 0
   fusionRecipe:
-    requiredCharacters: []
-    goldCost: 0
+    requiredCharacters:
+    - {fileID: 11400000, guid: 32c4f745ae8c4e7fb3a7c87ca70740d3, type: 2}
+    - {fileID: 11400000, guid: 32c4f745ae8c4e7fb3a7c87ca70740d3, type: 2}
+    - {fileID: 11400000, guid: 32c4f745ae8c4e7fb3a7c87ca70740d3, type: 2}
+    goldCost: 50
     gemCost: 0
