@@ -117,6 +117,8 @@ namespace MRD.Game
             enemy.gameObject.AddComponent<EnemyUnitView>().Setup(enemy, BuildPatrolPath(), enemy.Source.moveSpeed);
         }
 
+        // 첫 꼭짓점(왼쪽 위)이 스폰 지점이 된다 (EnemyUnitView는 항상 corners[0]에서 출발한다).
+        // 왼쪽 위 -> 왼쪽 아래 -> 오른쪽 아래 -> 오른쪽 위 순서라 화면상 시계 반대 방향으로 돈다.
         private Vector3[] BuildPatrolPath()
         {
             float xMin = patrolCenterX - patrolHalfWidth;
@@ -125,10 +127,10 @@ namespace MRD.Game
             float zMax = patrolCenterZ + patrolHalfDepth;
             return new[]
             {
-                new Vector3(xMin, 0f, zMin),
-                new Vector3(xMax, 0f, zMin),
-                new Vector3(xMax, 0f, zMax),
-                new Vector3(xMin, 0f, zMax),
+                new Vector3(xMin, 0f, zMax), // 왼쪽 위 (스폰 지점)
+                new Vector3(xMin, 0f, zMin), // 왼쪽 아래
+                new Vector3(xMax, 0f, zMin), // 오른쪽 아래
+                new Vector3(xMax, 0f, zMax), // 오른쪽 위
             };
         }
 

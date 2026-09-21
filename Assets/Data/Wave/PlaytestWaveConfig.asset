@@ -20,4 +20,4 @@ MonoBehaviour:
   leftBossInterval: 10
   rightBossOffset: 3
   mandatoryClearRounds: []
-  maxAliveMonsters: 50
+  maxAliveMonsters: 100
