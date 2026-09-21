@@ -6,6 +6,7 @@ using MRD.Data;
 using MRD.Gacha;
 using MRD.Game;
 using MRD.Control;
+using Selectable = MRD.Control.Selectable; // UnityEngine.UI에도 같은 이름의 클래스(Selectable)가 있어 명시적으로 구분
 
 namespace MRD.UI
 {
