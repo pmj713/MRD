@@ -35,11 +35,10 @@ namespace MRD.Game
         [SerializeField] private GachaTable gemAdvancedSummonTable;
         [SerializeField] private CharacterData fusionTestTarget;
 
-        [Header("배치 격자 (몬스터 순찰 경로보다 안쪽/뒤쪽에 놓이도록 gridOriginZ로 위치 조정)")]
+        [Header("배치 격자 (몬스터 순찰 경로 한가운데에 놓인다 - 몬스터가 격자를 둘러싸고 돈다)")]
         [SerializeField] private int gridWidth = 10;
         [SerializeField] private int gridHeight = 6;
         [SerializeField] private float gridCellSize = 1.5f;
-        [SerializeField] private float gridOriginZ = -20f;
 
         [Header("몬스터 순찰 경로 (바닥 위 직사각형 루프, 죽을 때까지 계속 돈다 - 폭/깊이/중심을 각각 조절 가능)")]
         [SerializeField] private float patrolHalfWidth = 14f;
@@ -97,8 +96,10 @@ namespace MRD.Game
         private void HandleUnitPlaced(int x, int y, BattleUnit unit)
         {
             // 격자의 x/y 인덱스를 바닥(X-Z 평면) 좌표로 매핑한다. Y(높이)는 항상 0.
-            // z는 gridOriginZ에서 시작해서 순찰 경로 쪽(양의 Z 방향)으로 늘어나며, 순찰 경로와 겹치지 않도록 뒤쪽에 위치시킨다.
-            var pos = new Vector3((x - (gridWidth - 1) / 2f) * gridCellSize, 0f, gridOriginZ + y * gridCellSize);
+            // 격자 전체가 순찰 경로의 중심(patrolCenterX/Z)에 오도록, 격자 크기의 절반만큼 빼서 중심을 맞춘다.
+            float originX = patrolCenterX - (gridWidth - 1) * gridCellSize / 2f;
+            float originZ = patrolCenterZ - (gridHeight - 1) * gridCellSize / 2f;
+            var pos = new Vector3(originX + x * gridCellSize, 0f, originZ + y * gridCellSize);
             unit.transform.position = pos;
             var renderer = UnitVisual.AttachCube(unit.transform, new Color(0.3f, 0.5f, 1f), 0.9f);
 
@@ -140,9 +141,9 @@ namespace MRD.Game
             Debug.Log($"[MRD] {round}라운드 시작{suffix}");
         }
 
-        // 배치 격자 시작 지점(gridOriginZ) 기준으로, 예전(그리드가 원점에 있던 시절)과 똑같은 상대 각도로
-        // 카메라를 배치한다 - 그래야 격자를 넓히거나 옮겨도 시작 로스터가 항상 화면(특히 하단 UI 바 위쪽)에
-        // 잘 보이는 위치에 놓인다. 순찰 경로 쪽 더 넓은 시야는 엣지 팬으로 확인한다.
+        // 순찰 경로(=배치 격자를 둘러싼 플레이 영역) 전체가 화면에 넉넉히 들어오도록,
+        // 경로의 중심(patrolCenterX/Z)을 바라보되 폭/깊이 중 큰 쪽에 비례해서 카메라를 뒤로 뺀다.
+        // 순찰 경로 크기를 Inspector에서 바꿔도 카메라가 항상 알아서 다시 맞춰진다.
         private void SetupCamera()
         {
             CreateGround();
@@ -150,10 +151,13 @@ namespace MRD.Game
             var cam = Camera.main;
             if (cam == null) return;
 
+            float span = Mathf.Max(patrolHalfWidth, patrolHalfDepth) * 2f;
+            var lookAt = new Vector3(patrolCenterX, 0f, patrolCenterZ);
+
             cam.orthographic = false;
             cam.fieldOfView = 50f;
-            cam.transform.position = new Vector3(0f, 9f, gridOriginZ - 5f);
-            cam.transform.LookAt(new Vector3(0f, 0f, gridOriginZ + 4f));
+            cam.transform.position = lookAt + new Vector3(0f, span * 0.7f, -span * 1.1f);
+            cam.transform.LookAt(lookAt);
         }
 
         // 3D 공간에서 오브젝트들이 허공에 떠 있는 것처럼 보이지 않도록 넣어두는 임시 바닥.

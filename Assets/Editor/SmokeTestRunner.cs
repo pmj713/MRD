@@ -71,6 +71,7 @@ namespace MRD.EditorTools
             ok &= CheckSynergy(spartan, heracles, zeus);
             ok &= CheckFullRoster();
             ok &= CheckCombat(spartan, heracles, zeus);
+            ok &= CheckAttackRangeTargeting();
             ok &= CheckWaveSpawner();
             ok &= CheckBattleUnitAttacksEnemyUnit(heracles);
             ok &= CheckPlacementGrid(spartan, heracles, zeus);
@@ -298,6 +299,89 @@ namespace MRD.EditorTools
                 Object.DestroyImmediate(enemyGo);
                 Object.DestroyImmediate(zeusGo);
                 Object.DestroyImmediate(dummyGo);
+            }
+
+            return ok;
+        }
+
+        // CombatManager가 attackRange(사거리) 안의 대상 중 "가장 가까운" 쪽을 고르는지,
+        // 사거리 밖 대상은 등록돼 있어도 무시하는지 검증한다. 등록 순서를 일부러 뒤섞어서
+        // "첫 등록"이 아니라 실제 거리로 고르는지까지 확인한다.
+        private static bool CheckAttackRangeTargeting()
+        {
+            bool ok;
+            var managerGo = new GameObject("SmokeTest_RangeCombatManager");
+            var attackerGo = new GameObject("SmokeTest_RangeAttacker");
+            var nearGo = new GameObject("SmokeTest_RangeNear");
+            var midGo = new GameObject("SmokeTest_RangeMid");
+            var outOfRangeGo = new GameObject("SmokeTest_RangeOutOfRange");
+            CharacterData attackerData = null;
+
+            try
+            {
+                var manager = managerGo.AddComponent<CombatManager>();
+
+                attackerData = ScriptableObject.CreateInstance<CharacterData>();
+                attackerData.characterName = "사거리 테스트용 유닛";
+                attackerData.stats = new CharacterStats
+                {
+                    physicalAttack = 10f,
+                    attackSpeed = 1f,
+                    criticalMultiplier = 1f,
+                    attackRange = 5f,
+                    health = 1000f,
+                };
+
+                var attacker = attackerGo.AddComponent<BattleUnit>();
+                attacker.Initialize(attackerData);
+                attackerGo.transform.position = Vector3.zero;
+
+                var near = nearGo.AddComponent<BattleUnit>();
+                near.Initialize(attackerData);
+                nearGo.transform.position = new Vector3(3f, 0f, 0f); // 거리 3 (사거리 5 이내, 가장 가까움)
+
+                var mid = midGo.AddComponent<BattleUnit>();
+                mid.Initialize(attackerData);
+                midGo.transform.position = new Vector3(4.5f, 0f, 0f); // 거리 4.5 (사거리 이내지만 near보다 멂)
+
+                var outOfRange = outOfRangeGo.AddComponent<BattleUnit>();
+                outOfRange.Initialize(attackerData);
+                outOfRangeGo.transform.position = new Vector3(10f, 0f, 0f); // 거리 10 (사거리 밖)
+
+                manager.RegisterAlly(attacker);
+                manager.RegisterEnemyTarget(mid); // 일부러 가까운 순이 아니게 등록
+                manager.RegisterEnemyTarget(outOfRange);
+                manager.RegisterEnemyTarget(near);
+
+                float nearHealthBefore = near.CurrentHealth;
+                float midHealthBefore = mid.CurrentHealth;
+                float outHealthBefore = outOfRange.CurrentHealth;
+
+                manager.ProcessAttack(attacker);
+
+                ok = LogAndCheck("사거리 안의 가장 가까운 대상이 피격됨",
+                    near.CurrentHealth < nearHealthBefore, near.CurrentHealth.ToString());
+                ok &= LogAndCheck("더 멀리 있는(사거리 안이지만 near보다 먼) 대상은 안 맞음",
+                    Mathf.Approximately(mid.CurrentHealth, midHealthBefore), mid.CurrentHealth.ToString());
+                ok &= LogAndCheck("사거리 밖 대상은 등록돼 있어도 안 맞음",
+                    Mathf.Approximately(outOfRange.CurrentHealth, outHealthBefore), outOfRange.CurrentHealth.ToString());
+
+                // 사거리 안에 아무도 안 남으면 아예 공격하지 않아야 한다 (사거리 무제한으로 새지 않는지 확인)
+                manager.UnregisterEnemyTarget(near);
+                manager.UnregisterEnemyTarget(mid);
+                float outHealthBefore2 = outOfRange.CurrentHealth;
+                manager.ProcessAttack(attacker);
+                ok &= LogAndCheck("사거리 안에 대상이 없으면 공격하지 않음",
+                    Mathf.Approximately(outOfRange.CurrentHealth, outHealthBefore2), outOfRange.CurrentHealth.ToString());
+            }
+            finally
+            {
+                Object.DestroyImmediate(managerGo);
+                Object.DestroyImmediate(attackerGo);
+                Object.DestroyImmediate(nearGo);
+                Object.DestroyImmediate(midGo);
+                Object.DestroyImmediate(outOfRangeGo);
+                if (attackerData != null) Object.DestroyImmediate(attackerData);
             }
 
             return ok;

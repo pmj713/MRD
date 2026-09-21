@@ -10,7 +10,7 @@ namespace MRD.Battle
     /// 공격 대상은 IDamageable로만 다루기 때문에, 실제 몬스터(MRD.Wave.EnemyUnit)든
     /// 테스트용 BattleUnit이든 상관없이 동일하게 동작한다. WaveSpawner가 스폰한
     /// EnemyUnit을 RegisterEnemyTarget으로 등록해주면 실제 웨이브 몬스터를 공격하게 된다.
-    /// 타겟팅은 아직 좌표/경로 시스템이 없어 "등록된 대상 중 첫 번째 유효 대상"으로 단순화했다.
+    /// 타겟팅은 attacker의 attackRange(사거리) 안에 있는 대상 중 가장 가까운 쪽을 고른다.
     /// </summary>
     public class CombatManager : MonoBehaviour
     {
@@ -44,7 +44,7 @@ namespace MRD.Battle
         /// </summary>
         public void ProcessAttack(BattleUnit attacker)
         {
-            var target = FindTarget();
+            var target = FindTarget(attacker);
             if (target == null) return;
 
             var stats = attacker.EffectiveStats;
@@ -74,14 +74,33 @@ namespace MRD.Battle
 
         private void HandleAllyDeath(BattleUnit unit) => UnregisterAlly(unit);
 
-        private IDamageable FindTarget()
+        // 사거리(attacker의 EffectiveStats.attackRange) 안에 있는 대상 중 가장 가까운 쪽을 고른다.
+        // 사거리가 0 이하로 설정된(아직 값을 안 채운) 유닛은 예전처럼 사거리 무제한으로 취급해서
+        // 조용히 공격 불능이 되는 것을 막는다.
+        private IDamageable FindTarget(BattleUnit attacker)
         {
+            float range = attacker.EffectiveStats.attackRange;
+            bool unlimitedRange = range <= 0f;
+            float rangeSqr = range * range;
+
+            IDamageable nearest = null;
+            float nearestSqrDistance = float.MaxValue;
+
             foreach (var candidate in _enemyTargets)
             {
-                if (candidate != null && candidate.IsTargetable)
-                    return candidate;
+                if (candidate == null || !candidate.IsTargetable) continue;
+
+                float sqrDistance = (candidate.Position - attacker.Position).sqrMagnitude;
+                if (!unlimitedRange && sqrDistance > rangeSqr) continue;
+
+                if (sqrDistance < nearestSqrDistance)
+                {
+                    nearestSqrDistance = sqrDistance;
+                    nearest = candidate;
+                }
             }
-            return null;
+
+            return nearest;
         }
     }
 }

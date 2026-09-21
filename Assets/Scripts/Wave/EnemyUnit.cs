@@ -16,6 +16,7 @@ namespace MRD.Wave
         public float CurrentHealth { get; private set; }
         public bool IsDead => CurrentHealth <= 0f;
         public bool IsTargetable => !IsDead;
+        public Vector3 Position => transform.position;
 
         public event Action<EnemyUnit> OnDeath;
 

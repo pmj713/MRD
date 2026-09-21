@@ -22,6 +22,7 @@ MonoBehaviour:
     magicAttack: 0
     attackSpeed: 1.1
     criticalMultiplier: 1.5
+    attackRange: 13
     health: 600
     armor: 5
     magicResist: 0

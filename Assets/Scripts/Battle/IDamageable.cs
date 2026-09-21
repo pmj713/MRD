@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace MRD.Battle
 {
     /// <summary>
@@ -9,6 +11,9 @@ namespace MRD.Battle
     {
         /// <summary>지금 공격 대상으로 선택해도 되는 상태인지. 죽었거나(체력 0) 전장을 이탈했으면 false.</summary>
         bool IsTargetable { get; }
+
+        /// <summary>사거리 판정에 쓰는 현재 월드 좌표.</summary>
+        Vector3 Position { get; }
 
         void TakePhysicalDamage(float rawDamage);
         void TakeMagicDamage(float rawDamage);

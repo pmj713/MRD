@@ -14,6 +14,7 @@ namespace MRD.Data
         public float magicAttack;
         public float attackSpeed;
         public float criticalMultiplier;
+        public float attackRange;
 
         [Header("방어")]
         public float health;

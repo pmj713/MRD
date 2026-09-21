@@ -18,6 +18,7 @@ namespace MRD.Battle
         public float CurrentMana { get; private set; }
         public bool IsDead => CurrentHealth <= 0f;
         public bool IsTargetable => !IsDead;
+        public Vector3 Position => transform.position;
 
         /// <summary>
         /// 공격 타이머가 한 번 채워질 때마다 발생. 실제 데미지 판정/투사체 생성은
@@ -61,6 +62,7 @@ namespace MRD.Battle
                 magicAttack = baseStats.magicAttack * (1f + modifier.magicAttackPercent / 100f),
                 attackSpeed = baseStats.attackSpeed * (1f + modifier.attackSpeedPercent / 100f),
                 criticalMultiplier = baseStats.criticalMultiplier,
+                attackRange = baseStats.attackRange,
                 health = baseStats.health * (1f + modifier.healthPercent / 100f),
                 armor = baseStats.armor * (1f + modifier.armorPercent / 100f),
                 magicResist = baseStats.magicResist * (1f + modifier.magicResistPercent / 100f),
