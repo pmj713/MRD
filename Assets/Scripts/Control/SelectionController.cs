@@ -36,29 +36,33 @@ namespace MRD.Control
 
         private void Update()
         {
-            // 마우스가 UI(버튼 등) 위에 있으면 그 클릭이 월드 쪽 선택/이동으로 새지 않게 막는다.
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
-                return;
+            bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
-            HandleLeftButton();
-            HandleRightButton();
+            HandleLeftButton(overUI);
+            HandleRightButton(overUI);
         }
 
-        private void HandleLeftButton()
+        private void HandleLeftButton(bool overUI)
         {
             if (Input.GetMouseButtonDown(0))
             {
+                // UI(버튼 등) 위에서 새로 누르는 것만 막는다 - 버튼 클릭은 UI 쪽에서 알아서 처리한다.
+                if (overUI) return;
+
                 _dragStart = Input.mousePosition;
                 _isMouseDown = true;
                 _isDragging = false;
             }
             else if (_isMouseDown && Input.GetMouseButton(0))
             {
+                // 이미 월드에서 시작된 드래그는 커서가 UI 위를 지나가도 계속 진행된다.
                 if (!_isDragging && Vector2.Distance(_dragStart, Input.mousePosition) >= dragThresholdPixels)
                     _isDragging = true;
             }
             else if (_isMouseDown && Input.GetMouseButtonUp(0))
             {
+                // 마우스를 뗀 지점이 UI 위여도, 이미 시작된 동작은 반드시 끝내고 드래그 사각형도 지운다.
+                // (그렇지 않으면 UI 버튼 위에서 손을 뗐을 때 선택도 안 되고 사각형도 화면에 남아버린다.)
                 Vector2 end = Input.mousePosition;
 
                 if (_isDragging)
@@ -66,7 +70,7 @@ namespace MRD.Control
                     var rect = BuildRect(_dragStart, end);
                     SetSelection(SelectionMath.FindInRect(AllSelectables, targetCamera, rect));
                 }
-                else
+                else if (!overUI)
                 {
                     var nearest = SelectionMath.FindNearest(AllSelectables, targetCamera, end, clickMaxPixelRadius);
                     SetSelection(nearest != null ? new List<Selectable> { nearest } : new List<Selectable>());
@@ -77,9 +81,9 @@ namespace MRD.Control
             }
         }
 
-        private void HandleRightButton()
+        private void HandleRightButton(bool overUI)
         {
-            if (!Input.GetMouseButtonDown(1) || _selected.Count == 0) return;
+            if (overUI || !Input.GetMouseButtonDown(1) || _selected.Count == 0) return;
 
             Vector3 worldPoint = ScreenToWorldPoint(Input.mousePosition);
             IssueMoveCommand(worldPoint);
