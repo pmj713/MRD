@@ -21,7 +21,7 @@ namespace MRD.Game
             _corners = pathCorners;
             _speed = Mathf.Max(0.01f, speed);
             _perimeter = ComputePerimeter(pathCorners);
-            _distanceTraveled = Random.Range(0f, Mathf.Max(0.01f, _perimeter)); // 여러 마리가 한 점에 겹치지 않도록 시작점 분산
+            _distanceTraveled = 0f; // 항상 같은 스폰 지점(경로의 첫 꼭짓점)에서 출발한다
 
             transform.position = GetPointAtDistance(_distanceTraveled);
         }
