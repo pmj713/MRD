@@ -14,7 +14,8 @@ namespace MRD.Control
         [SerializeField] private Camera targetCamera;
         [SerializeField] private float clickMaxPixelRadius = 24f;
         [SerializeField] private float dragThresholdPixels = 6f;
-        [SerializeField] private float moveFormationSpacing = 0.7f;
+        [SerializeField] private float moveFormationSpacing = 1f;
+        [SerializeField] private float minUnitSeparation = 1f; // 유닛 시각 큐브 크기(0.9)보다 커야 서로 겹치지 않는다
 
         private static readonly List<Selectable> AllSelectables = new List<Selectable>();
         private readonly List<Selectable> _selected = new List<Selectable>();
@@ -89,23 +90,72 @@ namespace MRD.Control
             IssueMoveCommand(worldPoint);
         }
 
-        // 선택된 유닛들이 한 점에 완전히 겹치지 않도록 목표 지점 주변 바닥(X-Z 평면)에 격자 형태로 펼쳐서 보낸다.
+        // 선택된 유닛들이 한 점에 완전히 겹치지 않도록 목표 지점 주변 바닥(X-Z 평면)에 격자 형태로 펼쳐서 보내고,
+        // 그렇게 정한 자리가 이동 대상이 아닌 다른 유닛(또는 같은 명령으로 이미 정해진 다른 목적지)과 너무 가까우면
+        // 밀어내서 서로 겹치지 않는 자리를 찾는다.
         private void IssueMoveCommand(Vector3 center)
         {
             int count = _selected.Count;
             int columns = Mathf.Max(1, Mathf.CeilToInt(Mathf.Sqrt(count)));
             int rows = Mathf.Max(1, Mathf.CeilToInt((float)count / columns));
 
+            var otherPositions = new List<Vector3>();
+            foreach (var s in AllSelectables)
+            {
+                if (s.Unit != null && !_selected.Contains(s))
+                    otherPositions.Add(s.Unit.Position);
+            }
+
+            var resolvedTargets = new List<Vector3>();
             for (int i = 0; i < count; i++)
             {
                 int row = i / columns;
                 int col = i % columns;
                 float offsetX = (col - (columns - 1) / 2f) * moveFormationSpacing;
                 float offsetZ = (row - (rows - 1) / 2f) * moveFormationSpacing;
+                var desired = center + new Vector3(offsetX, 0f, offsetZ);
+
+                var clearSpot = FindClearSpot(desired, otherPositions, resolvedTargets);
+                resolvedTargets.Add(clearSpot);
 
                 var mover = _selected[i].GetComponent<UnitMover>();
-                mover?.MoveTo(center + new Vector3(offsetX, 0f, offsetZ));
+                mover?.MoveTo(clearSpot);
             }
+        }
+
+        // desired 지점이 occupied 목록의 어떤 위치와 minUnitSeparation보다 가까우면, 그 위치 반대 방향으로
+        // 겹친 만큼 밀어내는 걸 반복해서 아무와도 겹치지 않는 자리를 찾는다.
+        private Vector3 FindClearSpot(Vector3 desired, List<Vector3> otherPositions, List<Vector3> resolvedTargets)
+        {
+            var point = desired;
+            const int maxIterations = 12;
+
+            for (int iter = 0; iter < maxIterations; iter++)
+            {
+                Vector3 pushDir = Vector3.zero;
+                float worstOverlap = 0f;
+
+                void CheckAgainst(Vector3 occupied)
+                {
+                    var diff = point - occupied;
+                    diff.y = 0f;
+                    float dist = diff.magnitude;
+                    float overlap = minUnitSeparation - dist;
+                    if (overlap > worstOverlap)
+                    {
+                        worstOverlap = overlap;
+                        pushDir = dist > 0.0001f ? diff / dist : Vector3.right;
+                    }
+                }
+
+                foreach (var p in otherPositions) CheckAgainst(p);
+                foreach (var p in resolvedTargets) CheckAgainst(p);
+
+                if (worstOverlap <= 0f) break; // 아무와도 겹치지 않음
+                point += pushDir * (worstOverlap + 0.05f);
+            }
+
+            return point;
         }
 
         // 카메라 각도와 상관없이 항상 바닥(Y=0 평면)과의 교점을 이동 목적지로 삼는다.
