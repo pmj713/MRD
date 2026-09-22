@@ -4,7 +4,7 @@ namespace MRD.Data
 {
     /// <summary>
     /// 유닛 하나에 대응하는 데이터 자산.
-    /// Faction/Rarity는 소환 확률, 조합 검증, 진영 시너지 계산 등 여러 시스템이 공통으로 참조하는 값이다.
+    /// Rarity는 소환 확률, 조합 검증 등 여러 시스템이 공통으로 참조하는 값이다.
     /// </summary>
     [CreateAssetMenu(fileName = "NewCharacter", menuName = "MRD/Character Data")]
     public class CharacterData : ScriptableObject
@@ -18,7 +18,6 @@ namespace MRD.Data
         public Sprite portrait;
 
         [Header("분류")]
-        public Faction faction;
         public Rarity rarity;
 
         [Header("스탯")]

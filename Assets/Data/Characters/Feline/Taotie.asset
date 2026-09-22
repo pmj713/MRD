@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
+  m_Name: Taotie
+  m_EditorClassIdentifier:
+  characterName: 도철
+  flavorText: 끝없는 탐욕을 상징하는 흉수. 무엇이든 집어삼킨다.
+  portrait: {fileID: 0}
+  rarity: 4
+  stats:
+    physicalAttack: 100
+    magicAttack: 80
+    attackSpeed: 1.2
+    criticalMultiplier: 1.8
+    attackRange: 13
+    health: 1200
+    armor: 12
+    magicResist: 12
+  activeSkill:
+    skillName:
+    description:
+    skillType: 0
+    manaCost: 0
+    cooldown: 0
+    triggerChancePercent: 0
+  passiveSkill:
+    skillName:
+    description:
+    skillType: 1
+    manaCost: 0
+    cooldown: 0
+    triggerChancePercent: 0
+  fusionRecipe:
+    requiredCharacters:
+    - {fileID: 11400000, guid: 2aec814e58ce45bda73e85726236eb2d, type: 2}
+    - {fileID: 11400000, guid: 2aec814e58ce45bda73e85726236eb2d, type: 2}
+    - {fileID: 11400000, guid: 2aec814e58ce45bda73e85726236eb2d, type: 2}
+    goldCost: 0
+    gemCost: 100

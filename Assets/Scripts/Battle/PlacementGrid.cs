@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using MRD.Data;
-using MRD.Synergy;
 
 namespace MRD.Battle
 {
@@ -143,27 +142,6 @@ namespace MRD.Battle
             _slots.Remove((fromX, fromY));
             _slots[(toX, toY)] = unit;
             return true;
-        }
-
-        /// <summary>
-        /// 현재 배치된 유닛 전체를 기준으로 진영 시너지를 다시 계산해서 각 유닛에 반영한다.
-        /// 배치/해제가 있을 때마다 호출해줘야 한다 (자동 호출하지 않음 - 여러 번 바꾼 뒤 한 번만 계산하고 싶을 수 있어서).
-        /// </summary>
-        public void RecomputeSynergies(SynergyManager synergyManager)
-        {
-            if (synergyManager == null) return;
-
-            var deployedCharacters = new List<CharacterData>();
-            foreach (var unit in _slots.Values)
-                deployedCharacters.Add(unit.Source);
-
-            var bonuses = synergyManager.Evaluate(deployedCharacters);
-
-            foreach (var unit in _slots.Values)
-            {
-                var bonus = bonuses.TryGetValue(unit.Source.faction, out var b) ? b : default;
-                unit.ApplySynergyBonus(bonus);
-            }
         }
 
         // 배치된 유닛이 전투 중 사망하면 슬롯을 비워서 다시 배치할 수 있게 한다.

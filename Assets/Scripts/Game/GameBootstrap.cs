@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using MRD.Data;
 using MRD.Battle;
-using MRD.Synergy;
 using MRD.Wave;
 using MRD.Control;
 using MRD.Gacha;
@@ -24,7 +23,6 @@ namespace MRD.Game
         [SerializeField] private WaveConfig waveConfig;
         [SerializeField] private MonsterData lineMonsterTemplate;
         [SerializeField] private MonsterData bossTemplate;
-        [SerializeField] private List<FactionSynergyData> factionSynergies = new List<FactionSynergyData>();
         [SerializeField] private List<CharacterData> starterRoster = new List<CharacterData>();
 
         [Header("소환/조합 (비워두면 자동 로드)")]
@@ -60,7 +58,7 @@ namespace MRD.Game
 
             var gameGo = new GameObject("GameManager");
             _game = gameGo.AddComponent<GameManager>();
-            _game.Configure(gridWidth, gridHeight, waveConfig, lineMonsterTemplate, bossTemplate, bossTemplate, factionSynergies);
+            _game.Configure(gridWidth, gridHeight, waveConfig, lineMonsterTemplate, bossTemplate, bossTemplate);
             _game.SetCharacterDatabase(characterDatabase);
 
             _game.PlacementGrid.OnUnitPlaced += HandleUnitPlaced;
@@ -183,19 +181,13 @@ namespace MRD.Game
             if (bossTemplate == null)
                 bossTemplate = AssetDatabase.LoadAssetAtPath<MonsterData>("Assets/Data/Monsters/Boss_ChaosGuardian.asset");
 
-            if (factionSynergies.Count == 0)
-            {
-                var synergy = AssetDatabase.LoadAssetAtPath<FactionSynergyData>("Assets/Data/Synergy/OlympusSynergy.asset");
-                if (synergy != null) factionSynergies.Add(synergy);
-            }
-
             if (starterRoster.Count == 0)
             {
                 string[] paths =
                 {
-                    "Assets/Data/Characters/Olympus/SpartanShieldman.asset",
-                    "Assets/Data/Characters/Olympus/Heracles.asset",
-                    "Assets/Data/Characters/Olympus/Zeus.asset",
+                    "Assets/Data/Characters/Canine/Puppy.asset",
+                    "Assets/Data/Characters/Canine/Werewolf.asset",
+                    "Assets/Data/Characters/Feline/WhiteTiger.asset",
                 };
                 foreach (var path in paths)
                 {
@@ -215,7 +207,7 @@ namespace MRD.Game
             if (gemAdvancedSummonTable == null)
                 gemAdvancedSummonTable = AssetDatabase.LoadAssetAtPath<GachaTable>("Assets/Data/Gacha/GemAdvancedSummon.asset");
             if (fusionTestTarget == null)
-                fusionTestTarget = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Olympus/Zeus.asset");
+                fusionTestTarget = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Feline/WhiteTiger.asset");
         }
 #endif
     }

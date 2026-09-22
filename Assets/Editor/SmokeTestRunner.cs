@@ -3,7 +3,6 @@ using UnityEngine;
 using UnityEditor;
 using MRD.Data;
 using MRD.Battle;
-using MRD.Synergy;
 using MRD.Wave;
 using MRD.Game;
 using MRD.Gacha;
@@ -21,45 +20,41 @@ namespace MRD.EditorTools
         [MenuItem("MRD/Run Character Smoke Test")]
         public static void RunSmokeTest()
         {
-            var spartan = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Olympus/SpartanShieldman.asset");
-            var heracles = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Olympus/Heracles.asset");
-            var zeus = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Olympus/Zeus.asset");
+            var puppy = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/Puppy.asset");
+            var werewolf = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/Werewolf.asset");
+            var whiteTiger = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Feline/WhiteTiger.asset");
 
             bool ok = true;
-            ok &= Check(spartan, "스파르타 방패병");
-            ok &= Check(heracles, "헤라클레스");
-            ok &= Check(zeus, "제우스 (봉인 해제)");
+            ok &= Check(puppy, "강아지");
+            ok &= Check(werewolf, "웨어울프");
+            ok &= Check(whiteTiger, "백호");
 
-            if (zeus != null && zeus.fusionRecipe.requiredCharacters != null && zeus.fusionRecipe.requiredCharacters.Length > 0)
+            if (whiteTiger != null && whiteTiger.fusionRecipe.requiredCharacters != null && whiteTiger.fusionRecipe.requiredCharacters.Length > 0)
             {
-                var material = zeus.fusionRecipe.requiredCharacters[0];
-                ok &= LogAndCheck("제우스 조합 재료 참조", material != null, $"{material?.characterName}");
+                var material = whiteTiger.fusionRecipe.requiredCharacters[0];
+                ok &= LogAndCheck("백호 조합 재료 참조", material != null, $"{material?.characterName}");
             }
             else
             {
-                Debug.LogError("[SmokeTest] 제우스 fusionRecipe.requiredCharacters 참조 실패");
+                Debug.LogError("[SmokeTest] 백호 fusionRecipe.requiredCharacters 참조 실패");
                 ok = false;
             }
 
-            // BattleUnit이 시너지 보너스를 실제로 반영해서 계산하는지 검증
+            // BattleUnit이 CharacterData의 스탯을 그대로 EffectiveStats로 반영하는지, 스킬 마나/쿨타임 판정이 맞는지 검증
             var go = new GameObject("SmokeTest_BattleUnit");
             try
             {
                 var unit = go.AddComponent<BattleUnit>();
-                var bonus = new StatModifier { physicalAttackPercent = 15f, attackSpeedPercent = 15f };
-                unit.Initialize(heracles, bonus);
+                unit.Initialize(whiteTiger);
 
-                float expectedAttack = heracles.stats.physicalAttack * 1.15f;
-                float expectedSpeed = heracles.stats.attackSpeed * 1.15f;
-
-                ok &= ApproxLog("EffectiveStats.physicalAttack", unit.EffectiveStats.physicalAttack, expectedAttack);
-                ok &= ApproxLog("EffectiveStats.attackSpeed", unit.EffectiveStats.attackSpeed, expectedSpeed);
-                ok &= ApproxLog("CurrentHealth(초기값 == 기본 체력)", unit.CurrentHealth, heracles.stats.health);
+                ok &= ApproxLog("EffectiveStats.physicalAttack == 기본 스탯", unit.EffectiveStats.physicalAttack, whiteTiger.stats.physicalAttack);
+                ok &= ApproxLog("EffectiveStats.attackSpeed == 기본 스탯", unit.EffectiveStats.attackSpeed, whiteTiger.stats.attackSpeed);
+                ok &= ApproxLog("CurrentHealth(초기값 == 기본 체력)", unit.CurrentHealth, whiteTiger.stats.health);
 
                 bool usedSkill = unit.TryUseActiveSkill();
                 ok &= LogAndCheck("마나 부족 상태에서 스킬 사용 실패해야 함", !usedSkill, usedSkill.ToString());
 
-                unit.AddMana(heracles.activeSkill.manaCost);
+                unit.AddMana(whiteTiger.activeSkill.manaCost);
                 usedSkill = unit.TryUseActiveSkill();
                 ok &= LogAndCheck("마나 충전 후 스킬 사용 성공해야 함", usedSkill, usedSkill.ToString());
             }
@@ -68,15 +63,14 @@ namespace MRD.EditorTools
                 Object.DestroyImmediate(go);
             }
 
-            ok &= CheckSynergy(spartan, heracles, zeus);
             ok &= CheckFullRoster();
-            ok &= CheckCombat(spartan, heracles, zeus);
+            ok &= CheckCombat(puppy, werewolf, whiteTiger);
             ok &= CheckAttackRangeTargeting();
             ok &= CheckWaveSpawner();
-            ok &= CheckBattleUnitAttacksEnemyUnit(heracles);
-            ok &= CheckPlacementGrid(spartan, heracles, zeus);
-            ok &= CheckGameManager(spartan, heracles, zeus);
-            ok &= CheckGachaAndFusion(heracles, zeus);
+            ok &= CheckBattleUnitAttacksEnemyUnit(werewolf);
+            ok &= CheckPlacementGrid(puppy, werewolf, whiteTiger);
+            ok &= CheckGameManager(puppy, werewolf, whiteTiger);
+            ok &= CheckGachaAndFusion();
             ok &= CheckFusionChains();
             ok &= CheckFuseSameMaterialTriple();
             ok &= CheckSummonAutoPlaceAndSell();
@@ -100,7 +94,7 @@ namespace MRD.EditorTools
                 return false;
             }
 
-            Debug.Log($"[SmokeTest] 로드됨: {data.characterName} (진영={data.faction}, 등급={data.rarity}, 체력={data.stats.health})");
+            Debug.Log($"[SmokeTest] 로드됨: {data.characterName} (등급={data.rarity}, 체력={data.stats.health})");
             return true;
         }
 
@@ -117,58 +111,12 @@ namespace MRD.EditorTools
             return pass;
         }
 
-        // SynergyManager가 배치 인원수에 따라 올바른 진영 시너지 단계를 계산하는지 엔드투엔드로 검증한다.
-        private static bool CheckSynergy(CharacterData a, CharacterData b, CharacterData c)
-        {
-            var synergyData = AssetDatabase.LoadAssetAtPath<FactionSynergyData>("Assets/Data/Synergy/OlympusSynergy.asset");
-            if (synergyData == null)
-            {
-                Debug.LogError("[SmokeTest] OlympusSynergy 에셋 로드 실패");
-                return false;
-            }
-
-            var go = new GameObject("SmokeTest_SynergyManager");
-            bool ok;
-            try
-            {
-                var manager = go.AddComponent<SynergyManager>();
-                manager.SetFactionSynergies(new List<FactionSynergyData> { synergyData });
-
-                // 2체: 어떤 단계도 달성하지 못해야 한다.
-                var twoUnits = new List<CharacterData> { a, b };
-                var resultTwo = manager.Evaluate(twoUnits);
-                ok = LogAndCheck("2체 배치 시 시너지 없음", !resultTwo.ContainsKey(Faction.Olympus), resultTwo.ContainsKey(Faction.Olympus).ToString());
-
-                // 3체: 1단계(공격속도 +15%)만 달성해야 한다.
-                var threeUnits = new List<CharacterData> { a, b, c };
-                var resultThree = manager.Evaluate(threeUnits);
-                bool hasThreeTier = resultThree.TryGetValue(Faction.Olympus, out var bonusThree);
-                ok &= LogAndCheck("3체 배치 시 시너지 발동", hasThreeTier, hasThreeTier.ToString());
-                ok &= ApproxLog("3체 시너지 attackSpeedPercent", bonusThree.attackSpeedPercent, 15f);
-                ok &= ApproxLog("3체 시너지 physicalAttackPercent(미달성, 0이어야 함)", bonusThree.physicalAttackPercent, 0f);
-
-                // 6체: 2단계(공격력 +25%)로 갱신되어야 한다 (1단계와 중첩되지 않음).
-                var sixUnits = new List<CharacterData> { a, a, b, b, c, c };
-                var resultSix = manager.Evaluate(sixUnits);
-                bool hasSixTier = resultSix.TryGetValue(Faction.Olympus, out var bonusSix);
-                ok &= LogAndCheck("6체 배치 시 상위 시너지로 갱신", hasSixTier, hasSixTier.ToString());
-                ok &= ApproxLog("6체 시너지 physicalAttackPercent", bonusSix.physicalAttackPercent, 25f);
-                ok &= ApproxLog("6체 시너지 attackSpeedPercent(1단계와 중첩되지 않아야 함)", bonusSix.attackSpeedPercent, 0f);
-            }
-            finally
-            {
-                Object.DestroyImmediate(go);
-            }
-
-            return ok;
-        }
-
-        // 프로젝트에 있는 모든 CharacterData 에셋이 깨짐 없이 로드되고, 진영별 개수가 기대치와 맞는지 검증한다.
+        // 프로젝트에 있는 모든 CharacterData 에셋이 깨짐 없이 로드되고, 등급별 개수가 기대치와 맞는지 검증한다.
         private static bool CheckFullRoster()
         {
             bool ok = true;
             var guids = AssetDatabase.FindAssets("t:CharacterData");
-            var countByFaction = new Dictionary<Faction, int>();
+            var countByRarity = new Dictionary<Rarity, int>();
 
             foreach (var guid in guids)
             {
@@ -187,73 +135,82 @@ namespace MRD.EditorTools
                     ok = false;
                 }
 
-                countByFaction.TryGetValue(data.faction, out var current);
-                countByFaction[data.faction] = current + 1;
+                countByRarity.TryGetValue(data.rarity, out var current);
+                countByRarity[data.rarity] = current + 1;
             }
 
             Debug.Log($"[SmokeTest] 전체 CharacterData 에셋 수: {guids.Length}");
-            foreach (var kv in countByFaction)
+            foreach (var kv in countByRarity)
                 Debug.Log($"[SmokeTest]  - {kv.Key}: {kv.Value}개");
 
-            ok &= LogAndCheck("전체 에셋 40개(기존 3개 + 신규 40개 예상)", guids.Length == 43, guids.Length.ToString());
+            ok &= LogAndCheck("전체 에셋 40개", guids.Length == 40, guids.Length.ToString());
 
-            // 올림포스는 아직 테스트용 3종(노말/레어/히든)만 있고, 나머지 5개 진영은 8종 풀 로스터여야 한다.
-            foreach (Faction faction in System.Enum.GetValues(typeof(Faction)))
+            // 동물 로스터: 노말 10 / 매직 7 / 레어 7 / 유니크 7 / 전설 5 / 히든 4
+            var expectedByRarity = new Dictionary<Rarity, int>
             {
-                int expected = faction == Faction.Olympus ? 3 : 8;
-                int actual = countByFaction.GetValueOrDefault(faction);
-                ok &= LogAndCheck($"{faction} 진영 유닛 수 ({expected}개 기대)", actual == expected, actual.ToString());
+                { Rarity.Normal, 10 },
+                { Rarity.Magic, 7 },
+                { Rarity.Rare, 7 },
+                { Rarity.Unique, 7 },
+                { Rarity.Legend, 5 },
+                { Rarity.Hidden, 4 },
+            };
+            foreach (var kv in expectedByRarity)
+            {
+                int actual = countByRarity.GetValueOrDefault(kv.Key);
+                ok &= LogAndCheck($"{kv.Key} 등급 유닛 수 ({kv.Value}개 기대)", actual == kv.Value, actual.ToString());
             }
 
             return ok;
         }
 
         // CombatManager가 평타 데미지/마나 획득/사망 처리/트리거 패시브를 실제로 처리하는지 검증한다.
-        private static bool CheckCombat(CharacterData spartanData, CharacterData heraclesData, CharacterData zeusData)
+        private static bool CheckCombat(CharacterData puppyData, CharacterData werewolfData, CharacterData whiteTigerData)
         {
             bool ok = true;
             var managerGo = new GameObject("SmokeTest_CombatManager");
-            var allyGo = new GameObject("SmokeTest_Ally_Heracles");
-            var enemyGo = new GameObject("SmokeTest_Enemy_Spartan");
-            var zeusGo = new GameObject("SmokeTest_Ally_Zeus");
+            var allyGo = new GameObject("SmokeTest_Ally_Werewolf");
+            var enemyGo = new GameObject("SmokeTest_Enemy_Puppy");
+            var tigerGo = new GameObject("SmokeTest_Ally_WhiteTiger");
             var dummyGo = new GameObject("SmokeTest_Enemy_Dummy");
+            CharacterData dummyData = null;
 
             try
             {
                 var manager = managerGo.AddComponent<CombatManager>();
 
-                var heraclesUnit = allyGo.AddComponent<BattleUnit>();
-                heraclesUnit.Initialize(heraclesData);
-                var spartanUnit = enemyGo.AddComponent<BattleUnit>();
-                spartanUnit.Initialize(spartanData);
+                var werewolfUnit = allyGo.AddComponent<BattleUnit>();
+                werewolfUnit.Initialize(werewolfData);
+                var puppyUnit = enemyGo.AddComponent<BattleUnit>();
+                puppyUnit.Initialize(puppyData);
 
                 bool deathFired = false;
-                spartanUnit.OnDeath += _ => deathFired = true;
+                puppyUnit.OnDeath += _ => deathFired = true;
 
-                manager.RegisterAlly(heraclesUnit);
-                manager.RegisterEnemyTarget(spartanUnit);
+                manager.RegisterAlly(werewolfUnit);
+                manager.RegisterEnemyTarget(puppyUnit);
 
-                // 평타 1회: 스파르타 방패병은 방어력 0이라 데미지가 [무크리, 크리] 범위 안에 들어야 한다.
-                float healthBefore = spartanUnit.CurrentHealth;
-                manager.ProcessAttack(heraclesUnit);
-                float actualDamage = healthBefore - spartanUnit.CurrentHealth;
-                float minDamage = heraclesData.stats.physicalAttack;
-                float maxDamage = heraclesData.stats.physicalAttack * heraclesData.stats.criticalMultiplier;
+                // 평타 1회: 강아지는 방어력 0이라 데미지가 [무크리, 크리] 범위 안에 들어야 한다.
+                float healthBefore = puppyUnit.CurrentHealth;
+                manager.ProcessAttack(werewolfUnit);
+                float actualDamage = healthBefore - puppyUnit.CurrentHealth;
+                float minDamage = werewolfData.stats.physicalAttack;
+                float maxDamage = werewolfData.stats.physicalAttack * werewolfData.stats.criticalMultiplier;
                 ok &= LogAndCheck("평타 데미지가 기대 범위 내(무크리~크리)",
                     actualDamage >= minDamage - 0.01f && actualDamage <= maxDamage + 0.01f, actualDamage.ToString());
-                ok &= ApproxLog("평타 1회 후 마나 증가", heraclesUnit.CurrentMana, 10f);
+                ok &= ApproxLog("평타 1회 후 마나 증가", werewolfUnit.CurrentMana, 10f);
 
-                // 죽을 때까지 반복 공격 -> OnDeath 발생 확인 (최소 데미지로도 3회면 충분히 죽는 체력차)
-                for (int i = 0; i < 10 && !spartanUnit.IsDead; i++)
-                    manager.ProcessAttack(heraclesUnit);
+                // 죽을 때까지 반복 공격 -> OnDeath 발생 확인
+                for (int i = 0; i < 20 && !puppyUnit.IsDead; i++)
+                    manager.ProcessAttack(werewolfUnit);
 
-                ok &= LogAndCheck("적 유닛이 사망 처리됨", spartanUnit.IsDead, spartanUnit.IsDead.ToString());
+                ok &= LogAndCheck("적 유닛이 사망 처리됨", puppyUnit.IsDead, puppyUnit.IsDead.ToString());
                 ok &= LogAndCheck("OnDeath 이벤트 발생", deathFired, deathFired.ToString());
 
                 // 대상이 사라진 뒤에도 예외 없이 처리되어야 한다 (자동 등록 해제 확인)
                 try
                 {
-                    manager.ProcessAttack(heraclesUnit);
+                    manager.ProcessAttack(werewolfUnit);
                     ok &= LogAndCheck("대상 없을 때 ProcessAttack 예외 없이 처리", true, "OK");
                 }
                 catch (System.Exception e)
@@ -262,26 +219,32 @@ namespace MRD.EditorTools
                     ok = false;
                 }
 
-                // 제우스의 트리거 패시브(15%)가 통계적으로 실제 발동하는지 확인.
-                // 대상은 체력을 사실상 무한으로 부풀려 도중에 죽지 않게 한다.
-                var zeusUnit = zeusGo.AddComponent<BattleUnit>();
-                zeusUnit.Initialize(zeusData);
-                var dummyUnit = dummyGo.AddComponent<BattleUnit>();
-                dummyUnit.Initialize(zeusData, new StatModifier { healthPercent = 1000000f });
+                // 백호의 트리거 패시브(15%)가 통계적으로 실제 발동하는지 확인.
+                // 대상은 체력을 사실상 무한으로 부풀린 더미(백호 스탯 복사 + 체력만 극단적으로 올림)로 만들어 도중에 죽지 않게 한다.
+                var tigerUnit = tigerGo.AddComponent<BattleUnit>();
+                tigerUnit.Initialize(whiteTigerData);
 
-                manager.RegisterAlly(zeusUnit);
+                var dummyStats = whiteTigerData.stats;
+                dummyStats.health = 100000000f;
+                dummyData = ScriptableObject.CreateInstance<CharacterData>();
+                dummyData.characterName = "트리거 테스트용 더미";
+                dummyData.stats = dummyStats;
+                var dummyUnit = dummyGo.AddComponent<BattleUnit>();
+                dummyUnit.Initialize(dummyData);
+
+                manager.RegisterAlly(tigerUnit);
                 manager.RegisterEnemyTarget(dummyUnit);
 
                 float mitPhys = 100f / (100f + dummyUnit.EffectiveStats.armor);
                 float mitMagic = 100f / (100f + dummyUnit.EffectiveStats.magicResist);
-                float maxNoTriggerDamage = (zeusUnit.EffectiveStats.physicalAttack * mitPhys
-                    + zeusUnit.EffectiveStats.magicAttack * mitMagic) * zeusUnit.EffectiveStats.criticalMultiplier;
+                float maxNoTriggerDamage = (tigerUnit.EffectiveStats.physicalAttack * mitPhys
+                    + tigerUnit.EffectiveStats.magicAttack * mitMagic) * tigerUnit.EffectiveStats.criticalMultiplier;
 
                 bool triggerObserved = false;
                 for (int i = 0; i < 200; i++)
                 {
                     float before = dummyUnit.CurrentHealth;
-                    manager.ProcessAttack(zeusUnit);
+                    manager.ProcessAttack(tigerUnit);
                     float damage = before - dummyUnit.CurrentHealth;
                     if (damage > maxNoTriggerDamage + 1f)
                     {
@@ -290,15 +253,16 @@ namespace MRD.EditorTools
                     }
                 }
 
-                ok &= LogAndCheck("제우스 트리거 패시브가 200회 평타 중 최소 1회 발동", triggerObserved, triggerObserved.ToString());
+                ok &= LogAndCheck("백호 트리거 패시브가 200회 평타 중 최소 1회 발동", triggerObserved, triggerObserved.ToString());
             }
             finally
             {
                 Object.DestroyImmediate(managerGo);
                 Object.DestroyImmediate(allyGo);
                 Object.DestroyImmediate(enemyGo);
-                Object.DestroyImmediate(zeusGo);
+                Object.DestroyImmediate(tigerGo);
                 Object.DestroyImmediate(dummyGo);
+                if (dummyData != null) Object.DestroyImmediate(dummyData);
             }
 
             return ok;
@@ -566,7 +530,7 @@ namespace MRD.EditorTools
         }
 
         // BattleUnit(아군)이 CombatManager를 통해 실제 EnemyUnit(웨이브 몬스터)을 공격하는지 검증한다.
-        private static bool CheckBattleUnitAttacksEnemyUnit(CharacterData heraclesData)
+        private static bool CheckBattleUnitAttacksEnemyUnit(CharacterData werewolfData)
         {
             bool ok = true;
             var lineMonster = AssetDatabase.LoadAssetAtPath<MonsterData>("Assets/Data/Monsters/LineMonster_Basic.asset");
@@ -579,20 +543,20 @@ namespace MRD.EditorTools
             {
                 var manager = managerGo.AddComponent<CombatManager>();
 
-                var heraclesUnit = allyGo.AddComponent<BattleUnit>();
-                heraclesUnit.Initialize(heraclesData);
-                manager.RegisterAlly(heraclesUnit);
+                var werewolfUnit = allyGo.AddComponent<BattleUnit>();
+                werewolfUnit.Initialize(werewolfData);
+                manager.RegisterAlly(werewolfUnit);
 
                 var enemy = enemyGo.AddComponent<EnemyUnit>();
                 enemy.Initialize(lineMonster, round: 1);
                 manager.RegisterEnemyTarget(enemy);
 
-                // 헤라클레스가 평타로 실제 EnemyUnit의 체력을 깎아야 한다 (몬스터 방어력 0 -> 감쇄 없음).
+                // 웨어울프가 평타로 실제 EnemyUnit의 체력을 깎아야 한다 (몬스터 방어력 0 -> 감쇄 없음).
                 float healthBefore = enemy.CurrentHealth;
-                manager.ProcessAttack(heraclesUnit);
+                manager.ProcessAttack(werewolfUnit);
                 float damage = healthBefore - enemy.CurrentHealth;
-                float minDamage = heraclesData.stats.physicalAttack;
-                float maxDamage = heraclesData.stats.physicalAttack * heraclesData.stats.criticalMultiplier;
+                float minDamage = werewolfData.stats.physicalAttack;
+                float maxDamage = werewolfData.stats.physicalAttack * werewolfData.stats.criticalMultiplier;
                 ok &= LogAndCheck("BattleUnit -> EnemyUnit 평타 데미지 범위 내",
                     damage >= minDamage - 0.01f && damage <= maxDamage + 0.01f, damage.ToString());
 
@@ -601,7 +565,7 @@ namespace MRD.EditorTools
                 ok &= LogAndCheck("사망한 몬스터는 IsTargetable == false", !enemy.IsTargetable, enemy.IsTargetable.ToString());
 
                 float healthBeforeSecond = enemy.CurrentHealth;
-                manager.ProcessAttack(heraclesUnit);
+                manager.ProcessAttack(werewolfUnit);
                 ok &= ApproxLog("사망한 몬스터는 더 이상 공격받지 않음", enemy.CurrentHealth, healthBeforeSecond);
             }
             finally
@@ -611,13 +575,13 @@ namespace MRD.EditorTools
                 Object.DestroyImmediate(enemyGo);
             }
 
-            ok &= CheckWaveSpawnerAutoRegistersWithCombatManager(heraclesData, lineMonster);
+            ok &= CheckWaveSpawnerAutoRegistersWithCombatManager(werewolfData, lineMonster);
 
             return ok;
         }
 
         // WaveSpawner가 스폰한 몬스터를 CombatManager에 자동 등록해서, 실제로 공격 가능한지 확인한다.
-        private static bool CheckWaveSpawnerAutoRegistersWithCombatManager(CharacterData heraclesData, MonsterData lineMonster)
+        private static bool CheckWaveSpawnerAutoRegistersWithCombatManager(CharacterData werewolfData, MonsterData lineMonster)
         {
             var config = ScriptableObject.CreateInstance<WaveConfig>();
             config.totalRounds = 3;
@@ -637,9 +601,9 @@ namespace MRD.EditorTools
             try
             {
                 var manager = managerGo.AddComponent<CombatManager>();
-                var heraclesUnit = allyGo.AddComponent<BattleUnit>();
-                heraclesUnit.Initialize(heraclesData);
-                manager.RegisterAlly(heraclesUnit);
+                var werewolfUnit = allyGo.AddComponent<BattleUnit>();
+                werewolfUnit.Initialize(werewolfData);
+                manager.RegisterAlly(werewolfUnit);
 
                 var spawner = spawnerGo.AddComponent<WaveSpawner>();
                 spawner.Configure(config, lineMonster, null, null);
@@ -656,7 +620,7 @@ namespace MRD.EditorTools
                 if (spawnedEnemy != null)
                 {
                     float before = spawnedEnemy.CurrentHealth;
-                    manager.ProcessAttack(heraclesUnit);
+                    manager.ProcessAttack(werewolfUnit);
                     float damage = before - spawnedEnemy.CurrentHealth;
                     ok &= LogAndCheck("WaveSpawner가 자동 등록한 몬스터를 실제로 공격함", damage > 0f, damage.ToString());
                 }
@@ -672,45 +636,37 @@ namespace MRD.EditorTools
             return ok;
         }
 
-        // PlacementGrid가 워크래프트3식 격자 배치(배치/이동/해제/사망 시 자동 해제)와
-        // 배치 인원 기준 시너지 재계산을 올바르게 처리하는지 검증한다.
-        private static bool CheckPlacementGrid(CharacterData spartanData, CharacterData heraclesData, CharacterData zeusData)
+        // PlacementGrid가 워크래프트3식 격자 배치(배치/이동/해제/사망 시 자동 해제)를 올바르게 처리하는지 검증한다.
+        private static bool CheckPlacementGrid(CharacterData puppyData, CharacterData werewolfData, CharacterData whiteTigerData)
         {
             bool ok = true;
-            var synergyData = AssetDatabase.LoadAssetAtPath<FactionSynergyData>("Assets/Data/Synergy/OlympusSynergy.asset");
 
             var managerGo = new GameObject("SmokeTest_Placement_CombatManager");
-            var synergyGo = new GameObject("SmokeTest_Placement_SynergyManager");
             var gridGo = new GameObject("SmokeTest_Placement_Grid");
 
             try
             {
                 var combatManager = managerGo.AddComponent<CombatManager>();
-                var synergyManager = synergyGo.AddComponent<SynergyManager>();
-                synergyManager.SetFactionSynergies(new List<FactionSynergyData> { synergyData });
 
                 var grid = gridGo.AddComponent<PlacementGrid>();
                 grid.Configure(3, 3, combatManager);
 
                 // 배치 / 중복 배치 방지 / 범위 밖 배치 방지
-                ok &= LogAndCheck("(0,0)에 스파르타 배치 성공", grid.TryPlaceUnit(0, 0, spartanData, out var spartanUnit), "true");
-                ok &= LogAndCheck("이미 찬 슬롯에는 배치 실패", !grid.TryPlaceUnit(0, 0, heraclesData, out _), "true");
-                ok &= LogAndCheck("(1,0)에 헤라클레스 배치 성공", grid.TryPlaceUnit(1, 0, heraclesData, out var heraclesUnit), "true");
-                ok &= LogAndCheck("격자 범위 밖 배치 실패", !grid.TryPlaceUnit(5, 5, zeusData, out _), "true");
-                ok &= LogAndCheck("GetUnitAt(0,0)이 스파르타 유닛 반환", grid.GetUnitAt(0, 0) == spartanUnit, "true");
+                ok &= LogAndCheck("(0,0)에 강아지 배치 성공", grid.TryPlaceUnit(0, 0, puppyData, out var puppyUnit), "true");
+                ok &= LogAndCheck("이미 찬 슬롯에는 배치 실패", !grid.TryPlaceUnit(0, 0, werewolfData, out _), "true");
+                ok &= LogAndCheck("(1,0)에 웨어울프 배치 성공", grid.TryPlaceUnit(1, 0, werewolfData, out var werewolfUnit), "true");
+                ok &= LogAndCheck("격자 범위 밖 배치 실패", !grid.TryPlaceUnit(5, 5, whiteTigerData, out _), "true");
+                ok &= LogAndCheck("GetUnitAt(0,0)이 강아지 유닛 반환", grid.GetUnitAt(0, 0) == puppyUnit, "true");
 
                 // 이동
                 ok &= LogAndCheck("(1,0)->(2,0) 이동 성공", grid.TryMoveUnit(1, 0, 2, 0), "true");
                 ok &= LogAndCheck("이동 후 원래 슬롯은 비어있음", !grid.IsSlotOccupied(1, 0), "true");
                 ok &= LogAndCheck("찬 슬롯으로는 이동 실패", !grid.TryMoveUnit(2, 0, 0, 0), "true");
 
-                // 세 번째 유닛 배치 후 시너지 재계산 (올림포스 3체 = 공격속도 +15%)
-                ok &= LogAndCheck("(1,0)에 제우스 배치 성공", grid.TryPlaceUnit(1, 0, zeusData, out var zeusUnit), "true");
-                grid.RecomputeSynergies(synergyManager);
-
-                ok &= ApproxLog("배치 3체 시너지 반영 - 스파르타 공격속도", spartanUnit.EffectiveStats.attackSpeed, spartanData.stats.attackSpeed * 1.15f);
-                ok &= ApproxLog("배치 3체 시너지 반영 - 헤라클레스 공격속도", heraclesUnit.EffectiveStats.attackSpeed, heraclesData.stats.attackSpeed * 1.15f);
-                ok &= ApproxLog("배치 3체 시너지 반영 - 제우스 공격속도", zeusUnit.EffectiveStats.attackSpeed, zeusData.stats.attackSpeed * 1.15f);
+                // 세 번째 유닛 배치
+                ok &= LogAndCheck("(1,0)에 백호 배치 성공", grid.TryPlaceUnit(1, 0, whiteTigerData, out var whiteTigerUnit), "true");
+                ok &= LogAndCheck("배치된 백호의 EffectiveStats가 기본 스탯과 일치", whiteTigerUnit.EffectiveStats.attackSpeed == whiteTigerData.stats.attackSpeed,
+                    whiteTigerUnit.EffectiveStats.attackSpeed.ToString());
 
                 // 명시적 해제 (판매 등)
                 ok &= LogAndCheck("(2,0) 유닛 해제 성공", grid.TryRemoveUnit(2, 0), "true");
@@ -719,27 +675,25 @@ namespace MRD.EditorTools
                 // 전투 중 사망 시 슬롯 자동 해제
                 bool removedEventFired = false;
                 grid.OnUnitRemoved += (_, _, _) => removedEventFired = true;
-                for (int i = 0; i < 20 && !spartanUnit.IsDead; i++)
-                    spartanUnit.TakePhysicalDamage(50f);
+                for (int i = 0; i < 20 && !puppyUnit.IsDead; i++)
+                    puppyUnit.TakePhysicalDamage(50f);
 
-                ok &= LogAndCheck("스파르타 유닛 사망 처리됨", spartanUnit.IsDead, spartanUnit.IsDead.ToString());
+                ok &= LogAndCheck("강아지 유닛 사망 처리됨", puppyUnit.IsDead, puppyUnit.IsDead.ToString());
                 ok &= LogAndCheck("사망 시 슬롯(0,0) 자동 해제", !grid.IsSlotOccupied(0, 0), (!grid.IsSlotOccupied(0, 0)).ToString());
                 ok &= LogAndCheck("사망 시 OnUnitRemoved 이벤트 발생", removedEventFired, removedEventFired.ToString());
             }
             finally
             {
                 Object.DestroyImmediate(managerGo);
-                Object.DestroyImmediate(synergyGo);
                 Object.DestroyImmediate(gridGo);
             }
 
             return ok;
         }
 
-        // GameManager가 배치/시너지/전투/웨이브/골드/승패 판정을 실제로 하나로 엮어 돌리는지 검증한다.
-        private static bool CheckGameManager(CharacterData spartanData, CharacterData heraclesData, CharacterData zeusData)
+        // GameManager가 배치/전투/웨이브/골드/승패 판정을 실제로 하나로 엮어 돌리는지 검증한다.
+        private static bool CheckGameManager(CharacterData puppyData, CharacterData werewolfData, CharacterData whiteTigerData)
         {
-            var synergyData = AssetDatabase.LoadAssetAtPath<FactionSynergyData>("Assets/Data/Synergy/OlympusSynergy.asset");
             var lineMonster = AssetDatabase.LoadAssetAtPath<MonsterData>("Assets/Data/Monsters/LineMonster_Basic.asset");
 
             var fastConfig = ScriptableObject.CreateInstance<WaveConfig>();
@@ -752,30 +706,31 @@ namespace MRD.EditorTools
             fastConfig.rightBossOffset = 0;
             fastConfig.mandatoryClearRounds = new int[0];
 
-            bool ok = CheckGameManagerPlacementAndKillReward(spartanData, heraclesData, zeusData, synergyData, lineMonster, fastConfig);
-            ok &= CheckGameManagerVictory(lineMonster, synergyData);
-            ok &= CheckGameManagerDefeat(lineMonster, synergyData);
+            bool ok = CheckGameManagerPlacementAndKillReward(puppyData, werewolfData, whiteTigerData, lineMonster, fastConfig);
+            ok &= CheckGameManagerVictory(lineMonster);
+            ok &= CheckGameManagerDefeat(lineMonster);
 
             Object.DestroyImmediate(fastConfig);
             return ok;
         }
 
-        private static bool CheckGameManagerPlacementAndKillReward(CharacterData spartanData, CharacterData heraclesData,
-            CharacterData zeusData, FactionSynergyData synergyData, MonsterData lineMonster, WaveConfig fastConfig)
+        private static bool CheckGameManagerPlacementAndKillReward(CharacterData puppyData, CharacterData werewolfData,
+            CharacterData whiteTigerData, MonsterData lineMonster, WaveConfig fastConfig)
         {
             var go = new GameObject("SmokeTest_GameManager_Main");
             bool ok;
             try
             {
                 var game = go.AddComponent<GameManager>();
-                game.Configure(3, 3, fastConfig, lineMonster, null, null, new List<FactionSynergyData> { synergyData });
+                game.Configure(3, 3, fastConfig, lineMonster, null, null);
 
-                // 웨이브 시작 전에도 배치가 가능해야 하고, 시너지가 바로 반영되어야 한다.
-                game.PlaceUnit(0, 0, spartanData, out var spartanUnit);
-                game.PlaceUnit(1, 0, heraclesData, out var heraclesUnit);
-                game.PlaceUnit(2, 0, zeusData, out var zeusUnit);
+                // 웨이브 시작 전에도 배치가 가능해야 한다.
+                game.PlaceUnit(0, 0, puppyData, out var puppyUnit);
+                game.PlaceUnit(1, 0, werewolfData, out var werewolfUnit);
+                game.PlaceUnit(2, 0, whiteTigerData, out var whiteTigerUnit);
 
-                ok = ApproxLog("웨이브 시작 전 배치만으로도 3체 시너지 반영", spartanUnit.EffectiveStats.attackSpeed, spartanData.stats.attackSpeed * 1.15f);
+                ok = LogAndCheck("웨이브 시작 전에도 3체 배치 성공",
+                    puppyUnit != null && werewolfUnit != null && whiteTigerUnit != null, "true");
 
                 int goldSeen = -1;
                 game.OnGoldChanged += g => goldSeen = g;
@@ -796,7 +751,7 @@ namespace MRD.EditorTools
                 if (spawnedEnemy != null)
                 {
                     for (int i = 0; i < 20 && !spawnedEnemy.IsDead; i++)
-                        game.CombatManager.ProcessAttack(heraclesUnit);
+                        game.CombatManager.ProcessAttack(werewolfUnit);
 
                     ok &= LogAndCheck("배치된 아군이 스폰된 몬스터를 처치함", spawnedEnemy.IsDead, spawnedEnemy.IsDead.ToString());
                     ok &= LogAndCheck("처치 보상으로 골드 지급됨", game.Gold == lineMonster.goldReward, game.Gold.ToString());
@@ -811,7 +766,7 @@ namespace MRD.EditorTools
             return ok;
         }
 
-        private static bool CheckGameManagerVictory(MonsterData lineMonster, FactionSynergyData synergyData)
+        private static bool CheckGameManagerVictory(MonsterData lineMonster)
         {
             var config = ScriptableObject.CreateInstance<WaveConfig>();
             config.totalRounds = 2;
@@ -833,7 +788,7 @@ namespace MRD.EditorTools
             try
             {
                 var game = go.AddComponent<GameManager>();
-                game.Configure(3, 3, config, fastMonster, null, null, new List<FactionSynergyData> { synergyData });
+                game.Configure(3, 3, config, fastMonster, null, null);
 
                 bool? victoryResult = null;
                 string reason = null;
@@ -858,7 +813,7 @@ namespace MRD.EditorTools
             return ok;
         }
 
-        private static bool CheckGameManagerDefeat(MonsterData lineMonster, FactionSynergyData synergyData)
+        private static bool CheckGameManagerDefeat(MonsterData lineMonster)
         {
             var config = ScriptableObject.CreateInstance<WaveConfig>();
             config.totalRounds = 20;
@@ -881,7 +836,7 @@ namespace MRD.EditorTools
             try
             {
                 var game = go.AddComponent<GameManager>();
-                game.Configure(3, 3, config, fastMonster, null, null, new List<FactionSynergyData> { synergyData });
+                game.Configure(3, 3, config, fastMonster, null, null);
 
                 bool? victoryResult = null;
                 game.OnGameEnded += (victory, _) => victoryResult = victory;
@@ -1010,33 +965,32 @@ namespace MRD.EditorTools
             return ok;
         }
 
-        // 유니크/전설 등급 유닛들의 조합식(레어 2개 -> 유니크, 유니크 -> 전설 2종)이 올바르게
-        // 채워졌는지 확인한다. 히든 조합식(전설 -> 히든)은 로스터 생성 시점부터 이미 있었다.
+        // 동물 로스터의 조합식(늑대과 체인 전체 + 다른 계열 일부)이 올바르게 채워졌는지 확인한다.
         private static bool CheckFusionChains()
         {
             bool ok = true;
 
-            ok &= CheckFusionRecipe("Assets/Data/Characters/Asgard/Sif.asset", "시프",
-                new[] { ("Assets/Data/Characters/Asgard/Tyr.asset", "티르"), ("Assets/Data/Characters/Asgard/Freyr.asset", "프레이") }, 200);
-            ok &= CheckFusionRecipe("Assets/Data/Characters/Asgard/Thor.asset", "토르",
-                new[] { ("Assets/Data/Characters/Asgard/Sif.asset", "시프") }, 400);
-            ok &= CheckFusionRecipe("Assets/Data/Characters/Asgard/Loki.asset", "로키",
-                new[] { ("Assets/Data/Characters/Asgard/Sif.asset", "시프") }, 400);
+            ok &= CheckFusionRecipe("Assets/Data/Characters/Canine/Wolf.asset", "늑대",
+                new[] { ("Assets/Data/Characters/Canine/Puppy.asset", "강아지"),
+                        ("Assets/Data/Characters/Canine/Puppy.asset", "강아지"),
+                        ("Assets/Data/Characters/Canine/Puppy.asset", "강아지") }, 50);
+            ok &= CheckFusionRecipe("Assets/Data/Characters/Canine/DireWolf.asset", "다이어울프",
+                new[] { ("Assets/Data/Characters/Canine/Wolf.asset", "늑대"),
+                        ("Assets/Data/Characters/Canine/Wolf.asset", "늑대"),
+                        ("Assets/Data/Characters/Canine/Wolf.asset", "늑대") }, 100);
+            ok &= CheckFusionRecipe("Assets/Data/Characters/Canine/Werewolf.asset", "웨어울프",
+                new[] { ("Assets/Data/Characters/Canine/DireWolf.asset", "다이어울프"),
+                        ("Assets/Data/Characters/Canine/DireWolf.asset", "다이어울프"),
+                        ("Assets/Data/Characters/Canine/DireWolf.asset", "다이어울프") }, 200);
+            ok &= CheckFusionRecipe("Assets/Data/Characters/Canine/NineTailedFox.asset", "구미호",
+                new[] { ("Assets/Data/Characters/Canine/Werewolf.asset", "웨어울프"),
+                        ("Assets/Data/Characters/Canine/Werewolf.asset", "웨어울프"),
+                        ("Assets/Data/Characters/Canine/Werewolf.asset", "웨어울프") }, 0);
 
-            ok &= CheckFusionRecipe("Assets/Data/Characters/AbyssalArchive/Ishtar.asset", "이슈타르",
-                new[] { ("Assets/Data/Characters/AbyssalArchive/Gilgamesh.asset", "길가메시"), ("Assets/Data/Characters/AbyssalArchive/Enkidu.asset", "엔키두") }, 200);
-            ok &= CheckFusionRecipe("Assets/Data/Characters/AbyssalArchive/Enlil.asset", "엔릴",
-                new[] { ("Assets/Data/Characters/AbyssalArchive/Ishtar.asset", "이슈타르") }, 400);
-
-            // 노멀 -> 매직 -> 레어까지 이어지는 하위 등급 조합 체인 검증 (같은 재료 3개를 요구).
-            ok &= CheckFusionRecipe("Assets/Data/Characters/Asgard/Valkyrie.asset", "발키리 시종",
-                new[] { ("Assets/Data/Characters/Asgard/Einherjar.asset", "아인헤리안 전사"),
-                        ("Assets/Data/Characters/Asgard/Einherjar.asset", "아인헤리안 전사"),
-                        ("Assets/Data/Characters/Asgard/Einherjar.asset", "아인헤리안 전사") }, 50);
-            ok &= CheckFusionRecipe("Assets/Data/Characters/Asgard/Tyr.asset", "티르",
-                new[] { ("Assets/Data/Characters/Asgard/Valkyrie.asset", "발키리 시종"),
-                        ("Assets/Data/Characters/Asgard/Valkyrie.asset", "발키리 시종"),
-                        ("Assets/Data/Characters/Asgard/Valkyrie.asset", "발키리 시종") }, 100);
+            ok &= CheckFusionRecipe("Assets/Data/Characters/Feline/WhiteTiger.asset", "백호",
+                new[] { ("Assets/Data/Characters/Feline/Taotie.asset", "도철"),
+                        ("Assets/Data/Characters/Feline/Taotie.asset", "도철"),
+                        ("Assets/Data/Characters/Feline/Taotie.asset", "도철") }, 0);
 
             return ok;
         }
@@ -1044,36 +998,36 @@ namespace MRD.EditorTools
         // 재료로 "같은 유닛 3마리"를 요구하는 조합(노멀 3개 -> 매직)이 GameManager를 통해 실제로 동작하는지 확인한다.
         private static bool CheckFuseSameMaterialTriple()
         {
-            var einherjar = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Asgard/Einherjar.asset");
-            var valkyrie = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Asgard/Valkyrie.asset");
+            var puppy = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/Puppy.asset");
+            var wolf = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/Wolf.asset");
 
             var go = new GameObject("SmokeTest_FuseSameMaterial");
             bool ok;
             try
             {
                 var game = go.AddComponent<GameManager>();
-                game.Configure(3, 3, null, null, null, null, new List<FactionSynergyData>());
+                game.Configure(3, 3, null, null, null, null);
 
                 bool fusedWithTwo = false;
-                if (einherjar != null && valkyrie != null)
+                if (puppy != null && wolf != null)
                 {
-                    game.Inventory.Add(einherjar, 2); // 2마리뿐이면 부족해야 한다
-                    fusedWithTwo = game.TryFuseCharacter(valkyrie);
+                    game.Inventory.Add(puppy, 2); // 2마리뿐이면 부족해야 한다
+                    fusedWithTwo = game.TryFuseCharacter(wolf);
                 }
                 ok = LogAndCheck("같은 재료 2마리로는 조합 실패", !fusedWithTwo, fusedWithTwo.ToString());
 
                 bool fusedWithThree = false;
-                if (einherjar != null && valkyrie != null)
+                if (puppy != null && wolf != null)
                 {
-                    game.Inventory.Add(einherjar, 1); // 총 3마리로 채움
+                    game.Inventory.Add(puppy, 1); // 총 3마리로 채움
                     game.GrantGold(50);
-                    fusedWithThree = game.TryFuseCharacter(valkyrie);
+                    fusedWithThree = game.TryFuseCharacter(wolf);
                 }
                 ok &= LogAndCheck("같은 재료 3마리 + 골드로 조합 성공", fusedWithThree, fusedWithThree.ToString());
-                ok &= LogAndCheck("조합 후 아인헤리안 전사 재료 전부 소모", einherjar == null || game.Inventory.GetCount(einherjar) == 0,
-                    einherjar == null ? "asset missing" : game.Inventory.GetCount(einherjar).ToString());
-                ok &= LogAndCheck("조합 결과 발키리 시종이 보유 목록에 추가됨", valkyrie == null || game.Inventory.GetCount(valkyrie) == 1,
-                    valkyrie == null ? "asset missing" : game.Inventory.GetCount(valkyrie).ToString());
+                ok &= LogAndCheck("조합 후 강아지 재료 전부 소모", puppy == null || game.Inventory.GetCount(puppy) == 0,
+                    puppy == null ? "asset missing" : game.Inventory.GetCount(puppy).ToString());
+                ok &= LogAndCheck("조합 결과 늑대가 보유 목록에 추가됨", wolf == null || game.Inventory.GetCount(wolf) == 1,
+                    wolf == null ? "asset missing" : game.Inventory.GetCount(wolf).ToString());
             }
             finally
             {
@@ -1110,16 +1064,18 @@ namespace MRD.EditorTools
         }
 
         // 소환(가챠)과 조합이 재화 차감/보유 목록/등급 확률대로 실제로 동작하는지 검증한다.
-        private static bool CheckGachaAndFusion(CharacterData heraclesData, CharacterData zeusData)
+        private static bool CheckGachaAndFusion()
         {
             bool ok = true;
 
             var database = AssetDatabase.LoadAssetAtPath<CharacterDatabase>("Assets/Data/CharacterDatabase.asset");
             var goldSummon = AssetDatabase.LoadAssetAtPath<GachaTable>("Assets/Data/Gacha/GoldSummon.asset");
             var gemMidSummon = AssetDatabase.LoadAssetAtPath<GachaTable>("Assets/Data/Gacha/GemMidSummon.asset");
+            var werewolf = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/Werewolf.asset");
+            var nineTailedFox = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/NineTailedFox.asset");
 
             ok &= LogAndCheck("CharacterDatabase 로드", database != null, (database != null).ToString());
-            ok &= LogAndCheck("CharacterDatabase 전체 43개 등록", database != null && database.allCharacters.Count == 43,
+            ok &= LogAndCheck("CharacterDatabase 전체 40개 등록", database != null && database.allCharacters.Count == 40,
                 database?.allCharacters.Count.ToString() ?? "null");
             ok &= LogAndCheck("GoldSummon 테이블 로드", goldSummon != null, (goldSummon != null).ToString());
             ok &= LogAndCheck("GemMidSummon 테이블 로드", gemMidSummon != null, (gemMidSummon != null).ToString());
@@ -1144,20 +1100,21 @@ namespace MRD.EditorTools
                 Object.DestroyImmediate(gachaGo);
             }
 
-            ok &= CheckGameManagerSummonAndFusion(database, heraclesData, zeusData, goldSummon, gemMidSummon);
+            ok &= CheckGameManagerSummonAndFusion(database, werewolf, nineTailedFox, goldSummon);
 
             return ok;
         }
 
-        private static bool CheckGameManagerSummonAndFusion(CharacterDatabase database, CharacterData heraclesData,
-            CharacterData zeusData, GachaTable goldSummon, GachaTable gemMidSummon)
+        // 구미호는 웨어울프 3마리 + 보석 100이 필요하다 (소환/조합 통합 검증).
+        private static bool CheckGameManagerSummonAndFusion(CharacterDatabase database, CharacterData werewolfData,
+            CharacterData nineTailedFoxData, GachaTable goldSummon)
         {
             var go = new GameObject("SmokeTest_GameManager_Gacha");
             bool ok;
             try
             {
                 var game = go.AddComponent<GameManager>();
-                game.Configure(3, 3, null, null, null, null, new List<FactionSynergyData>());
+                game.Configure(3, 3, null, null, null, null);
                 game.SetCharacterDatabase(database);
 
                 // 재화 없이는 소환 실패, 아무것도 차감되지 않아야 한다.
@@ -1177,21 +1134,21 @@ namespace MRD.EditorTools
                         game.Inventory.GetCount(summonedCharacter).ToString());
                 }
 
-                // 조합: 제우스는 헤라클레스 1 + 보석 300이 필요하다.
-                bool fusedWithoutMaterial = game.TryFuseCharacter(zeusData);
+                // 조합: 구미호는 웨어울프 3마리 + 보석 100이 필요하다.
+                bool fusedWithoutMaterial = game.TryFuseCharacter(nineTailedFoxData);
                 ok &= LogAndCheck("재료 없이 조합 시도하면 실패", !fusedWithoutMaterial, fusedWithoutMaterial.ToString());
 
-                game.Inventory.Add(heraclesData); // 헤라클레스를 보유하고 있다고 가정
-                bool fusedWithoutGems = game.TryFuseCharacter(zeusData);
+                game.Inventory.Add(werewolfData, 3); // 웨어울프 3마리를 보유하고 있다고 가정
+                bool fusedWithoutGems = game.TryFuseCharacter(nineTailedFoxData);
                 ok &= LogAndCheck("보석 없이 조합 시도하면 실패(재료는 소모 안 됨)", !fusedWithoutGems, fusedWithoutGems.ToString());
-                ok &= LogAndCheck("실패한 조합은 재료를 소모하지 않음", game.Inventory.GetCount(heraclesData) == 1, game.Inventory.GetCount(heraclesData).ToString());
+                ok &= LogAndCheck("실패한 조합은 재료를 소모하지 않음", game.Inventory.GetCount(werewolfData) == 3, game.Inventory.GetCount(werewolfData).ToString());
 
-                game.GrantGems(300);
-                bool fused = game.TryFuseCharacter(zeusData);
+                game.GrantGems(100);
+                bool fused = game.TryFuseCharacter(nineTailedFoxData);
                 ok &= LogAndCheck("재료+재화 충분하면 조합 성공", fused, fused.ToString());
-                ok &= LogAndCheck("조합 후 보석 300 소모", game.Gems == 0, game.Gems.ToString());
-                ok &= LogAndCheck("조합 후 헤라클레스 재료 소모됨", game.Inventory.GetCount(heraclesData) == 0, game.Inventory.GetCount(heraclesData).ToString());
-                ok &= LogAndCheck("조합 결과 제우스가 보유 목록에 추가됨", game.Inventory.GetCount(zeusData) == 1, game.Inventory.GetCount(zeusData).ToString());
+                ok &= LogAndCheck("조합 후 보석 100 소모", game.Gems == 0, game.Gems.ToString());
+                ok &= LogAndCheck("조합 후 웨어울프 재료 소모됨", game.Inventory.GetCount(werewolfData) == 0, game.Inventory.GetCount(werewolfData).ToString());
+                ok &= LogAndCheck("조합 결과 구미호가 보유 목록에 추가됨", game.Inventory.GetCount(nineTailedFoxData) == 1, game.Inventory.GetCount(nineTailedFoxData).ToString());
             }
             finally
             {
@@ -1207,21 +1164,21 @@ namespace MRD.EditorTools
         {
             var database = AssetDatabase.LoadAssetAtPath<CharacterDatabase>("Assets/Data/CharacterDatabase.asset");
             var goldSummon = AssetDatabase.LoadAssetAtPath<GachaTable>("Assets/Data/Gacha/GoldSummon.asset");
-            var heraclesData = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Olympus/Heracles.asset");
-            var zeusData = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Olympus/Zeus.asset");
+            var werewolfData = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/Werewolf.asset");
+            var nineTailedFoxData = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/NineTailedFox.asset");
 
             bool ok = true;
 
-            // 헤라클레스는 제우스 조합 재료이므로, 역방향 조회 시 제우스가 나와야 한다.
-            var targets = database.FindFusionTargetsUsing(heraclesData);
-            ok &= LogAndCheck("헤라클레스를 재료로 쓰는 조합 대상에 제우스 포함", targets.Contains(zeusData),
+            // 웨어울프는 구미호 조합 재료이므로, 역방향 조회 시 구미호가 나와야 한다.
+            var targets = database.FindFusionTargetsUsing(werewolfData);
+            ok &= LogAndCheck("웨어울프를 재료로 쓰는 조합 대상에 구미호 포함", targets.Contains(nineTailedFoxData),
                 string.Join(", ", targets.ConvertAll(t => t.characterName)));
 
             var go = new GameObject("SmokeTest_GameManager_AutoPlaceSell");
             try
             {
                 var game = go.AddComponent<GameManager>();
-                game.Configure(3, 3, null, null, null, null, new List<FactionSynergyData>());
+                game.Configure(3, 3, null, null, null, null);
                 game.SetCharacterDatabase(database);
 
                 game.GrantGold(1000);
@@ -1261,35 +1218,35 @@ namespace MRD.EditorTools
         // 그 유닛이 반드시(다른 동일 유닛보다 우선해서) 사라지는지도 함께 확인한다.
         private static bool CheckFuseRemovesFieldMaterials()
         {
-            var einherjar = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Asgard/Einherjar.asset");
-            var valkyrie = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Asgard/Valkyrie.asset");
+            var puppy = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/Puppy.asset");
+            var wolf = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/Wolf.asset");
 
             var go = new GameObject("SmokeTest_FuseFieldRemoval");
             bool ok;
             try
             {
                 var game = go.AddComponent<GameManager>();
-                game.Configure(4, 1, null, null, null, null, new List<FactionSynergyData>());
+                game.Configure(4, 1, null, null, null, null);
 
-                game.PlaceUnit(0, 0, einherjar, out var unitA);
-                game.PlaceUnit(1, 0, einherjar, out _);
-                game.PlaceUnit(2, 0, einherjar, out _);
-                game.PlaceUnit(3, 0, einherjar, out _);
-                game.Inventory.Add(einherjar, 4);
+                game.PlaceUnit(0, 0, puppy, out var unitA);
+                game.PlaceUnit(1, 0, puppy, out _);
+                game.PlaceUnit(2, 0, puppy, out _);
+                game.PlaceUnit(3, 0, puppy, out _);
+                game.Inventory.Add(puppy, 4);
                 game.GrantGold(50);
 
-                bool fused = game.TryFuseCharacter(valkyrie, unitA);
+                bool fused = game.TryFuseCharacter(wolf, unitA);
                 ok = LogAndCheck("지정 유닛을 재료로 조합 성공", fused, fused.ToString());
                 ok &= LogAndCheck("지정했던 유닛(unitA)이 화면(필드)에서 파괴됨", unitA == null, (unitA == null).ToString());
 
-                int remainingEinherjar = 0;
+                int remainingPuppy = 0;
                 for (int x = 0; x < 4; x++)
                 {
                     var u = game.PlacementGrid.GetUnitAt(x, 0);
-                    if (u != null && u.Source == einherjar) remainingEinherjar++;
+                    if (u != null && u.Source == puppy) remainingPuppy++;
                 }
-                ok &= LogAndCheck("필드에 아인헤리안 전사가 1마리만 남음(4마리 중 3마리 소모)",
-                    remainingEinherjar == 1, remainingEinherjar.ToString());
+                ok &= LogAndCheck("필드에 강아지가 1마리만 남음(4마리 중 3마리 소모)",
+                    remainingPuppy == 1, remainingPuppy.ToString());
             }
             finally
             {

@@ -6,8 +6,7 @@ namespace MRD.Battle
 {
     /// <summary>
     /// 전투에 배치된 캐릭터 하나의 런타임 상태.
-    /// CharacterData(고정 수치)에 진영 시너지 보너스를 반영한 실제 전투 스탯과
-    /// 현재 체력/마나/쿨타임을 관리한다.
+    /// CharacterData(고정 수치)를 그대로 전투 스탯으로 쓰고, 현재 체력/마나/쿨타임을 관리한다.
     /// </summary>
     public class BattleUnit : MonoBehaviour, IDamageable
     {
@@ -33,42 +32,16 @@ namespace MRD.Battle
         private float _activeSkillCooldownRemaining;
         private float _attackTimer;
 
-        public void Initialize(CharacterData source, StatModifier synergyBonus = default)
+        public void Initialize(CharacterData source)
         {
             Source = source;
             SpawnOrder = SpawnOrderCounter.Next();
-            RecomputeEffectiveStats(synergyBonus);
+            EffectiveStats = source.stats;
 
             CurrentHealth = EffectiveStats.health;
             CurrentMana = 0f;
             _activeSkillCooldownRemaining = 0f;
             _attackTimer = 0f;
-        }
-
-        /// <summary>
-        /// 배치 상태가 바뀌어 진영 시너지 단계가 달라졌을 때 호출한다.
-        /// 최대 체력이 줄어드는 경우를 대비해 현재 체력은 새 최대치로 clamp한다.
-        /// </summary>
-        public void ApplySynergyBonus(StatModifier synergyBonus)
-        {
-            RecomputeEffectiveStats(synergyBonus);
-            CurrentHealth = Mathf.Min(CurrentHealth, EffectiveStats.health);
-        }
-
-        private void RecomputeEffectiveStats(StatModifier modifier)
-        {
-            var baseStats = Source.stats;
-            EffectiveStats = new CharacterStats
-            {
-                physicalAttack = baseStats.physicalAttack * (1f + modifier.physicalAttackPercent / 100f),
-                magicAttack = baseStats.magicAttack * (1f + modifier.magicAttackPercent / 100f),
-                attackSpeed = baseStats.attackSpeed * (1f + modifier.attackSpeedPercent / 100f),
-                criticalMultiplier = baseStats.criticalMultiplier,
-                attackRange = baseStats.attackRange,
-                health = baseStats.health * (1f + modifier.healthPercent / 100f),
-                armor = baseStats.armor * (1f + modifier.armorPercent / 100f),
-                magicResist = baseStats.magicResist * (1f + modifier.magicResistPercent / 100f),
-            };
         }
 
         private void Update()

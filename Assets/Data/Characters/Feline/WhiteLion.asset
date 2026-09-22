@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
+  m_Name: WhiteLion
+  m_EditorClassIdentifier:
+  characterName: 백사자
+  flavorText: 눈처럼 새하얀 갈기를 휘날리는 희귀한 사자.
+  portrait: {fileID: 0}
+  rarity: 3
+  stats:
+    physicalAttack: 85
+    magicAttack: 0
+    attackSpeed: 1.15
+    criticalMultiplier: 1.6
+    attackRange: 13
+    health: 700
+    armor: 8
+    magicResist: 8
+  activeSkill:
+    skillName:
+    description:
+    skillType: 0
+    manaCost: 0
+    cooldown: 0
+    triggerChancePercent: 0
+  passiveSkill:
+    skillName:
+    description:
+    skillType: 1
+    manaCost: 0
+    cooldown: 0
+    triggerChancePercent: 0
+  fusionRecipe:
+    requiredCharacters:
+    - {fileID: 11400000, guid: c3db73e627434602a4438ce704c5b935, type: 2}
+    - {fileID: 11400000, guid: c3db73e627434602a4438ce704c5b935, type: 2}
+    - {fileID: 11400000, guid: c3db73e627434602a4438ce704c5b935, type: 2}
+    goldCost: 200
+    gemCost: 0

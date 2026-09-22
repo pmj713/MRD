@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
+  m_Name: FlyingDragon
+  m_EditorClassIdentifier:
+  characterName: 비룡
+  flavorText: 마침내 날개를 얻고 하늘로 승천하기 시작한 용.
+  portrait: {fileID: 0}
+  rarity: 3
+  stats:
+    physicalAttack: 85
+    magicAttack: 0
+    attackSpeed: 1.15
+    criticalMultiplier: 1.6
+    attackRange: 13
+    health: 700
+    armor: 8
+    magicResist: 8
+  activeSkill:
+    skillName:
+    description:
+    skillType: 0
+    manaCost: 0
+    cooldown: 0
+    triggerChancePercent: 0
+  passiveSkill:
+    skillName:
+    description:
+    skillType: 1
+    manaCost: 0
+    cooldown: 0
+    triggerChancePercent: 0
+  fusionRecipe:
+    requiredCharacters:
+    - {fileID: 11400000, guid: 0d9bf31de2bf4cf1b6070be0f579f439, type: 2}
+    - {fileID: 11400000, guid: 0d9bf31de2bf4cf1b6070be0f579f439, type: 2}
+    - {fileID: 11400000, guid: 0d9bf31de2bf4cf1b6070be0f579f439, type: 2}
+    goldCost: 200
+    gemCost: 0

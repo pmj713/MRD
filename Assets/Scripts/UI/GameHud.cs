@@ -165,7 +165,7 @@ namespace MRD.UI
             var s = unit.EffectiveStats;
             _unitInfoText.text =
                 $"{unit.Source.characterName}\n" +
-                $"진영: {unit.Source.faction}   등급: {unit.Source.rarity}\n" +
+                $"등급: {unit.Source.rarity}\n" +
                 $"체력: {Mathf.CeilToInt(unit.CurrentHealth)} / {Mathf.CeilToInt(s.health)}\n" +
                 $"공격력: {s.physicalAttack:0} (물리) / {s.magicAttack:0} (마법)\n" +
                 $"공격속도: {s.attackSpeed:0.00}   방어력: {s.armor:0}   마법저항: {s.magicResist:0}";

@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
+  m_Name: DireWolf
+  m_EditorClassIdentifier:
+  characterName: 다이어울프
+  flavorText: 일반 늑대보다 훨씬 크고 사나운 고대 늑대종.
+  portrait: {fileID: 0}
+  rarity: 2
+  stats:
+    physicalAttack: 50
+    magicAttack: 0
+    attackSpeed: 1.1
+    criticalMultiplier: 1.5
+    attackRange: 13
+    health: 400
+    armor: 5
+    magicResist: 5
+  activeSkill:
+    skillName:
+    description:
+    skillType: 0
+    manaCost: 0
+    cooldown: 0
+    triggerChancePercent: 0
+  passiveSkill:
+    skillName:
+    description:
+    skillType: 1
+    manaCost: 0
+    cooldown: 0
+    triggerChancePercent: 0
+  fusionRecipe:
+    requiredCharacters:
+    - {fileID: 11400000, guid: 2696b62ecde54b1cb80efdaa6d0a2ad9, type: 2}
+    - {fileID: 11400000, guid: 2696b62ecde54b1cb80efdaa6d0a2ad9, type: 2}
+    - {fileID: 11400000, guid: 2696b62ecde54b1cb80efdaa6d0a2ad9, type: 2}
+    goldCost: 100
+    gemCost: 0

@@ -8,27 +8,15 @@ using MRD.Gacha;
 namespace MRD.UI
 {
     /// <summary>
-    /// 지정한 키(기본 R)로 여닫는 조합서 패널. 왼쪽에서 진영을 누르면 그 아래로 노말/매직/레어/유니크/전설
-    /// 등급 버튼이 아코디언처럼 펼쳐지고(한 번에 하나의 진영만 펼쳐짐), 등급을 누르면 오른쪽에
-    /// "재료 + 재료 = 결과" 형태로 조합식을 보여준다. 노말처럼 조합식이 없는 유닛은 소환 전용 안내가 나온다.
+    /// 지정한 키(기본 R)로 여닫는 조합서 패널. 왼쪽에서 등급(노말~히든)을 누르면 오른쪽에
+    /// "재료 + 재료 = 결과" 형태로 그 등급의 조합식을 보여준다. 노말처럼 조합식이 없는 유닛은
+    /// 소환 전용 안내가 나온다.
     /// </summary>
     public class FusionBookUI : MonoBehaviour
     {
-        private static readonly Faction[] ShownFactions =
+        private static readonly Rarity[] ShownTiers =
         {
-            Faction.Asgard, Faction.ThroneOfRa, Faction.NineRealms, Faction.AbyssalArchive, Faction.Covenant,
-        };
-
-        private static readonly Rarity[] ShownTiers = { Rarity.Normal, Rarity.Magic, Rarity.Rare, Rarity.Unique, Rarity.Legend };
-
-        private static readonly Dictionary<Faction, string> FactionNames = new Dictionary<Faction, string>
-        {
-            { Faction.Olympus, "올림포스" },
-            { Faction.Asgard, "아스가르드" },
-            { Faction.ThroneOfRa, "라의 왕좌" },
-            { Faction.NineRealms, "구주" },
-            { Faction.AbyssalArchive, "심연의 서고" },
-            { Faction.Covenant, "숲의 맹약" },
+            Rarity.Normal, Rarity.Magic, Rarity.Rare, Rarity.Unique, Rarity.Legend, Rarity.Hidden,
         };
 
         private static readonly Dictionary<Rarity, string> TierNames = new Dictionary<Rarity, string>
@@ -38,6 +26,7 @@ namespace MRD.UI
             { Rarity.Rare, "레어" },
             { Rarity.Unique, "유니크" },
             { Rarity.Legend, "전설" },
+            { Rarity.Hidden, "히든" },
         };
 
         [SerializeField] private KeyCode toggleKey = KeyCode.R;
@@ -46,8 +35,6 @@ namespace MRD.UI
         private GameObject _panelRoot;
         private Transform _recipeListParent;
         private Text _recipeHeaderText;
-
-        private readonly Dictionary<Faction, List<GameObject>> _tierButtons = new Dictionary<Faction, List<GameObject>>();
 
         public void Initialize(CharacterDatabase database)
         {
@@ -62,26 +49,14 @@ namespace MRD.UI
                 _panelRoot.SetActive(!_panelRoot.activeSelf);
         }
 
-        // 한 번에 하나의 진영만 펼쳐지도록(아코디언) 다른 진영은 접는다.
-        private void ToggleFactionGroup(Faction faction)
-        {
-            bool willShow = !_tierButtons[faction][0].activeSelf;
-
-            foreach (var kv in _tierButtons)
-            {
-                bool show = kv.Key == faction && willShow;
-                foreach (var b in kv.Value) b.SetActive(show);
-            }
-        }
-
-        private void ShowTierRecipes(Faction faction, Rarity tier)
+        private void ShowTierRecipes(Rarity tier)
         {
             foreach (Transform child in _recipeListParent)
                 Destroy(child.gameObject);
 
-            _recipeHeaderText.text = $"{FactionNames[faction]} - {TierNames[tier]}";
+            _recipeHeaderText.text = TierNames[tier];
 
-            var units = GetUnits(faction, tier);
+            var units = GetUnits(tier);
             if (units.Count == 0)
             {
                 CreateRecipeRow("해당 등급 유닛이 아직 없습니다.");
@@ -108,14 +83,14 @@ namespace MRD.UI
             }
         }
 
-        private List<CharacterData> GetUnits(Faction faction, Rarity rarity)
+        private List<CharacterData> GetUnits(Rarity rarity)
         {
             var result = new List<CharacterData>();
             if (_database == null) return result;
 
             foreach (var character in _database.allCharacters)
             {
-                if (character != null && character.faction == faction && character.rarity == rarity)
+                if (character != null && character.rarity == rarity)
                     result.Add(character);
             }
             return result;
@@ -146,38 +121,28 @@ namespace MRD.UI
             var title = CreateText(mainPanel.transform, "조합서 (R로 닫기)", new Vector2(0.5f, 1f), new Vector2(0f, -16f), 22);
             title.alignment = TextAnchor.UpperCenter;
 
-            var leftList = CreateVerticalList(mainPanel.transform, new Vector2(16f, -56f), new Vector2(240f, 520f));
-            BuildFactionList(leftList);
+            var leftList = CreateVerticalList(mainPanel.transform, new Vector2(16f, -56f), new Vector2(200f, 520f));
+            BuildTierList(leftList);
 
-            _recipeHeaderText = CreateText(mainPanel.transform, "왼쪽에서 진영과 등급을 선택하세요", new Vector2(0f, 1f), new Vector2(280f, -56f), 20);
-            _recipeHeaderText.rectTransform.sizeDelta = new Vector2(580f, 30f);
+            _recipeHeaderText = CreateText(mainPanel.transform, "왼쪽에서 등급을 선택하세요", new Vector2(0f, 1f), new Vector2(240f, -56f), 20);
+            _recipeHeaderText.rectTransform.sizeDelta = new Vector2(620f, 30f);
 
-            _recipeListParent = CreateVerticalList(mainPanel.transform, new Vector2(280f, -96f), new Vector2(580f, 480f));
+            _recipeListParent = CreateVerticalList(mainPanel.transform, new Vector2(240f, -96f), new Vector2(620f, 480f));
         }
 
-        private void BuildFactionList(Transform parent)
+        private void BuildTierList(Transform parent)
         {
-            foreach (var faction in ShownFactions)
+            foreach (var tier in ShownTiers)
             {
-                var factionButton = faction; // 로컬 캡처
-                CreateListButton(parent, FactionNames[faction], 30f, () => ToggleFactionGroup(factionButton));
-
-                var tierButtons = new List<GameObject>();
-                foreach (var tier in ShownTiers)
-                {
-                    var tierValue = tier; // 로컬 캡처
-                    var btn = CreateListButton(parent, "    " + TierNames[tier], 26f, () => ShowTierRecipes(factionButton, tierValue));
-                    btn.SetActive(false);
-                    tierButtons.Add(btn);
-                }
-                _tierButtons[faction] = tierButtons;
+                var tierValue = tier; // 로컬 캡처
+                CreateListButton(parent, TierNames[tier], 32f, () => ShowTierRecipes(tierValue));
             }
         }
 
         private void CreateRecipeRow(string text)
         {
             var row = CreateText(_recipeListParent, text, new Vector2(0f, 1f), Vector2.zero, 18);
-            row.rectTransform.sizeDelta = new Vector2(560f, 30f);
+            row.rectTransform.sizeDelta = new Vector2(600f, 30f);
         }
 
         private static GameObject CreateFullScreenPanel(Transform parent, Color color)

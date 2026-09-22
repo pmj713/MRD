@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using MRD.Battle;
 using MRD.Data;
-using MRD.Synergy;
 using MRD.Wave;
 using MRD.Gacha;
 
 namespace MRD.Game
 {
     /// <summary>
-    /// 배치 격자(PlacementGrid), 전투 판정(CombatManager), 진영 시너지(SynergyManager),
+    /// 배치 격자(PlacementGrid), 전투 판정(CombatManager),
     /// 웨이브 진행(WaveSpawner)을 한 곳에서 엮어서 굴리는 최상위 진행 관리자.
     /// 인스펙터로 값만 채워 넣고 StartGame()을 호출하면 바로 플레이 가능한 상태가 되는 걸 목표로 한다.
     /// </summary>
@@ -18,7 +17,6 @@ namespace MRD.Game
     {
         [Header("컴포넌트 참조 (비워두면 같은 오브젝트에 자동으로 추가)")]
         [SerializeField] private CombatManager combatManager;
-        [SerializeField] private SynergyManager synergyManager;
         [SerializeField] private PlacementGrid placementGrid;
         [SerializeField] private WaveSpawner waveSpawner;
         [SerializeField] private GachaManager gachaManager;
@@ -36,9 +34,6 @@ namespace MRD.Game
         [SerializeField] private MonsterData leftBossTemplate;
         [SerializeField] private MonsterData rightBossTemplate;
 
-        [Header("등록할 진영 시너지 표")]
-        [SerializeField] private List<FactionSynergyData> factionSynergies = new List<FactionSynergyData>();
-
         // 등급별 기본 가치 - 판매가는 이 값의 SellRefundRatio 비율만큼 골드로 돌려준다.
         private static readonly Dictionary<Rarity, int> BaseValueByRarity = new Dictionary<Rarity, int>
         {
@@ -54,7 +49,6 @@ namespace MRD.Game
         private const float SellRefundRatio = 0.5f;
 
         public CombatManager CombatManager => combatManager;
-        public SynergyManager SynergyManager => synergyManager;
         public PlacementGrid PlacementGrid => placementGrid;
         public WaveSpawner WaveSpawner => waveSpawner;
         public GachaManager GachaManager => gachaManager;
@@ -80,7 +74,7 @@ namespace MRD.Game
 
         /// <summary>인스펙터 대신 코드로 설정할 때 사용한다 (부트스트랩, 테스트 등).</summary>
         public void Configure(int width, int height, WaveConfig config, MonsterData lineMonster,
-            MonsterData leftBoss, MonsterData rightBoss, List<FactionSynergyData> synergies)
+            MonsterData leftBoss, MonsterData rightBoss)
         {
             gridWidth = width;
             gridHeight = height;
@@ -88,7 +82,6 @@ namespace MRD.Game
             lineMonsterTemplate = lineMonster;
             leftBossTemplate = leftBoss;
             rightBossTemplate = rightBoss;
-            factionSynergies = synergies ?? new List<FactionSynergyData>();
         }
 
         /// <summary>소환 시스템에 쓸 캐릭터 데이터베이스를 지정한다 (부트스트랩, 테스트 등).</summary>
@@ -101,7 +94,6 @@ namespace MRD.Game
 
             EnsureComponents(); // Awake가 아직 실행되지 않았을 수 있는 상황(에디터 스크립트 등)에 대비한 방어적 호출
 
-            synergyManager.SetFactionSynergies(factionSynergies);
             placementGrid.Configure(gridWidth, gridHeight, combatManager);
             waveSpawner.Configure(waveConfig, lineMonsterTemplate, leftBossTemplate, rightBossTemplate);
             waveSpawner.SetCombatManager(combatManager);
@@ -117,7 +109,6 @@ namespace MRD.Game
         private void EnsureComponents()
         {
             if (combatManager == null) combatManager = gameObject.AddComponent<CombatManager>();
-            if (synergyManager == null) synergyManager = gameObject.AddComponent<SynergyManager>();
             if (placementGrid == null) placementGrid = gameObject.AddComponent<PlacementGrid>();
             if (waveSpawner == null) waveSpawner = gameObject.AddComponent<WaveSpawner>();
             if (gachaManager == null) gachaManager = gameObject.AddComponent<GachaManager>();
@@ -134,26 +125,18 @@ namespace MRD.Game
             waveSpawner.StartRun();
         }
 
-        /// <summary>지정 슬롯에 유닛을 배치하고, 배치 결과에 맞춰 진영 시너지를 다시 계산한다.</summary>
+        /// <summary>지정 슬롯에 유닛을 배치한다.</summary>
         public bool PlaceUnit(int x, int y, CharacterData data, out BattleUnit placedUnit)
         {
             EnsureInitialized();
-
-            bool success = placementGrid.TryPlaceUnit(x, y, data, out placedUnit);
-            if (success)
-                placementGrid.RecomputeSynergies(synergyManager);
-            return success;
+            return placementGrid.TryPlaceUnit(x, y, data, out placedUnit);
         }
 
-        /// <summary>지정 슬롯의 유닛을 빼내고, 배치 결과에 맞춰 진영 시너지를 다시 계산한다.</summary>
+        /// <summary>지정 슬롯의 유닛을 빼낸다.</summary>
         public bool RemoveUnit(int x, int y)
         {
             EnsureInitialized();
-
-            bool success = placementGrid.TryRemoveUnit(x, y);
-            if (success)
-                placementGrid.RecomputeSynergies(synergyManager);
-            return success;
+            return placementGrid.TryRemoveUnit(x, y);
         }
 
         /// <summary>골드를 지급한다 (보상, 테스트 등). 전투 처치 보상 외에 외부에서 지급할 때 사용.</summary>
