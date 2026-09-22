@@ -57,6 +57,12 @@ namespace MRD.Game
 
         private void SpawnBoss()
         {
+            if (_bossTemplate == null)
+            {
+                Debug.LogError("[MRD] RaidManager: 레이드 보스 MonsterData가 비어있어 보스를 등장시키지 못했다.");
+                return;
+            }
+
             _currentBossGo = new GameObject("RaidBoss");
             _currentBossGo.transform.position = _bossPosition;
 
