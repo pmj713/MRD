@@ -145,10 +145,9 @@ namespace MRD.Game
         private void HandleUnitPlaced(int x, int y, BattleUnit unit)
         {
             // 격자의 x/y 인덱스를 바닥(X-Z 평면) 좌표로 매핑한다. Y(높이)는 항상 0.
-            // 격자 전체가 순찰 경로의 중심(patrolCenterX/Z)에 오도록, 격자 크기의 절반만큼 빼서 중심을 맞춘다.
-            float originX = patrolCenterX - (gridWidth - 1) * gridCellSize / 2f;
-            float originZ = patrolCenterZ - (gridHeight - 1) * gridCellSize / 2f;
-            var pos = new Vector3(originX + x * gridCellSize, 0f, originZ + y * gridCellSize);
+            // 슬롯 (0,0)이 곧 스폰 지점(순찰 경로 한가운데)이고, PlacementGrid가 그 지점에서
+            // 가장 가까운 빈 슬롯을 찾아주므로 여기서는 그대로 배율만 곱해서 좌표를 옮기면 된다.
+            var pos = new Vector3(patrolCenterX + x * gridCellSize, 0f, patrolCenterZ + y * gridCellSize);
             unit.transform.position = pos;
             var renderer = UnitVisual.AttachCube(unit.transform, new Color(0.3f, 0.5f, 1f), 0.9f);
 

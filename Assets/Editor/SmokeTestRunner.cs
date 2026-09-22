@@ -666,12 +666,15 @@ namespace MRD.EditorTools
                 var grid = gridGo.AddComponent<PlacementGrid>();
                 grid.Configure(3, 3, combatManager);
 
-                // 배치 / 중복 배치 방지 / 범위 밖 배치 방지
+                // 배치 / 중복 배치 방지 (더 이상 격자 범위 제한은 없다 - 스폰 지점에서 가장 가까운 빈 자리를 찾는 방식이라
+                // 유닛 수에 상한이 없어야 하므로, 아주 먼 좌표에도 배치가 성공해야 한다)
                 ok &= LogAndCheck("(0,0)에 강아지 배치 성공", grid.TryPlaceUnit(0, 0, puppyData, out var puppyUnit), "true");
                 ok &= LogAndCheck("이미 찬 슬롯에는 배치 실패", !grid.TryPlaceUnit(0, 0, werewolfData, out _), "true");
                 ok &= LogAndCheck("(1,0)에 웨어울프 배치 성공", grid.TryPlaceUnit(1, 0, werewolfData, out var werewolfUnit), "true");
-                ok &= LogAndCheck("격자 범위 밖 배치 실패", !grid.TryPlaceUnit(5, 5, whiteTigerData, out _), "true");
+                ok &= LogAndCheck("먼 좌표(5,5)에도 배치 성공(상한 없음)", grid.TryPlaceUnit(5, 5, whiteTigerData, out var farUnit), "true");
                 ok &= LogAndCheck("GetUnitAt(0,0)이 강아지 유닛 반환", grid.GetUnitAt(0, 0) == puppyUnit, "true");
+
+                grid.TryRemoveUnit(5, 5); // 이후 (1,0) 재사용 테스트와 겹치지 않도록 바로 정리
 
                 // 이동
                 ok &= LogAndCheck("(1,0)->(2,0) 이동 성공", grid.TryMoveUnit(1, 0, 2, 0), "true");

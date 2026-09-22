@@ -6,59 +6,70 @@ using MRD.Data;
 namespace MRD.Battle
 {
     /// <summary>
-    /// 워크래프트3 커스텀 디펜스 맵처럼, 고정된 격자 슬롯에 아군 유닛을 배치/해제하는 시스템.
-    /// 슬롯은 (x, y) 정수 좌표로만 식별한다 - 실제 화면 좌표로의 매핑은 씬/아트가 준비되면
-    /// 별도 테이블(슬롯 좌표 -> 배치 지점 Transform)로 추가할 자리다.
+    /// 아군 유닛을 배치/해제하는 시스템. 슬롯은 (x, y) 정수 좌표로만 식별하고, (0, 0)을
+    /// 스폰 지점(대개 화면상 순찰 경로 한가운데)으로 취급한다 - 실제 화면 좌표로의 매핑은
+    /// 슬롯 좌표에 셀 크기를 곱하는 식으로 별도 테이블에서 처리한다.
+    /// 격자 크기에 상한이 없어서(음수 좌표 포함, 자유 평면) 유닛 수 제한이 없고,
+    /// 슬롯 좌표는 항상 유닛마다 고유하므로 화면에서 서로 겹치는 일도 없다.
     /// </summary>
     public class PlacementGrid : MonoBehaviour
     {
-        [SerializeField] private int width = 5;
-        [SerializeField] private int height = 5;
         [SerializeField] private CombatManager combatManager;
 
         private readonly Dictionary<(int x, int y), BattleUnit> _slots = new Dictionary<(int x, int y), BattleUnit>();
 
-        public int Width => width;
-        public int Height => height;
-
         public event Action<int, int, BattleUnit> OnUnitPlaced;
         public event Action<int, int, BattleUnit> OnUnitRemoved;
 
+        /// <summary>gridWidth/gridHeight는 더 이상 배치 가능 범위를 제한하지 않는다 (하위 호환을 위해 인자만 남겨둠).</summary>
         public void Configure(int gridWidth, int gridHeight, CombatManager manager)
         {
-            width = gridWidth;
-            height = gridHeight;
             combatManager = manager;
         }
 
-        public bool IsValidSlot(int x, int y) => x >= 0 && x < width && y >= 0 && y < height;
+        public bool IsValidSlot(int x, int y) => true;
 
         public bool IsSlotOccupied(int x, int y) => _slots.ContainsKey((x, y));
 
         public BattleUnit GetUnitAt(int x, int y) => _slots.TryGetValue((x, y), out var unit) ? unit : null;
 
         /// <summary>
-        /// 비어 있는 슬롯을 하나 찾는다 (소환 등으로 얻은 유닛을 자동 배치할 때 사용).
-        /// 기존 격자가 꽉 차 있으면 뒤쪽에 줄을 추가해서 항상 빈 슬롯을 찾아준다
-        /// (소환 개수에 상한을 두지 않기 위함 - 유닛끼리 좌표가 겹칠 일도 없어진다).
+        /// 스폰 지점(0, 0)에서 가장 가까운 빈 슬롯을 찾는다 (소환/조합으로 얻은 유닛을 자동 배치할 때 사용).
+        /// 스폰 지점에 이미 유닛이 있으면 그 다음으로 가까운 빈 자리를 반경을 넓혀가며 찾으므로,
+        /// 유닛 수에 상한이 없고 서로 좌표가 겹치는 일도 없다.
         /// </summary>
         public bool TryFindEmptySlot(out int x, out int y)
         {
-            while (true)
+            for (int radius = 0; ; radius++)
             {
-                for (int yy = 0; yy < height; yy++)
+                bool foundAny = false;
+                int bestX = 0, bestY = 0;
+                float bestDistSqr = float.MaxValue;
+
+                for (int dx = -radius; dx <= radius; dx++)
                 {
-                    for (int xx = 0; xx < width; xx++)
+                    for (int dy = -radius; dy <= radius; dy++)
                     {
-                        if (!IsSlotOccupied(xx, yy))
+                        if (Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) != radius) continue; // 이번 반경의 테두리만 (안쪽은 이전 반경에서 이미 확인함)
+                        if (IsSlotOccupied(dx, dy)) continue;
+
+                        float distSqr = dx * dx + dy * dy;
+                        if (!foundAny || distSqr < bestDistSqr)
                         {
-                            x = xx;
-                            y = yy;
-                            return true;
+                            foundAny = true;
+                            bestDistSqr = distSqr;
+                            bestX = dx;
+                            bestY = dy;
                         }
                     }
                 }
-                height++;
+
+                if (foundAny)
+                {
+                    x = bestX;
+                    y = bestY;
+                    return true;
+                }
             }
         }
 
