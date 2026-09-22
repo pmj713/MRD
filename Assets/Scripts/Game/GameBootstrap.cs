@@ -23,6 +23,7 @@ namespace MRD.Game
         [SerializeField] private WaveConfig waveConfig;
         [SerializeField] private MonsterData lineMonsterTemplate;
         [SerializeField] private MonsterData bossTemplate;
+        [SerializeField] private MonsterData raidBossTemplate;
         [SerializeField] private List<CharacterData> starterRoster = new List<CharacterData>();
 
         [Header("소환/조합 (비워두면 자동 로드)")]
@@ -73,6 +74,7 @@ namespace MRD.Game
             gameObject.AddComponent<FusionBookUI>().Initialize(characterDatabase);
 
             PlaceStarterRoster();
+            SetupRaid();
 
             _game.StartGame();
             _game.GrantGold(500); // 소환/조합 버튼을 바로 눌러볼 수 있도록 지급하는 테스트용 시작 재화
@@ -90,6 +92,54 @@ namespace MRD.Game
                 _game.Inventory.Add(data); // 배치한 유닛은 보유 중인 것으로 취급 (조합 재료 등으로 바로 쓸 수 있게)
                 x++;
             }
+        }
+
+        // 보스 레이드: 순찰 경로 안쪽 한 구석에 입구 포탈을 두고, 웨이브 지역과 완전히 떨어진 곳에
+        // 순찰 경로와 같은 크기의 레이드 장소를 만든다. 레이드 장소 반대쪽 구석엔 귀환 포탈을 둔다.
+        private void SetupRaid()
+        {
+            const float margin = 2f;
+            var raidCenter = new Vector3(patrolCenterX + 200f, 0f, patrolCenterZ); // 웨이브 지역과 겹치지 않도록 멀리 떨어뜨린다
+
+            CreateFlatGround(raidCenter, patrolHalfWidth, patrolHalfDepth, new Color(0.16f, 0.12f, 0.2f));
+
+            // 순찰 경로 안쪽, 오른쪽 위 구석에 입구를 둔다 (경계선에 딱 붙지 않도록 margin만큼 안쪽으로).
+            var entrancePos = new Vector3(patrolCenterX + patrolHalfWidth - margin, 0f, patrolCenterZ + patrolHalfDepth - margin);
+            var entranceArrival = raidCenter + new Vector3(-patrolHalfWidth + margin, 0f, -patrolHalfDepth + margin);
+
+            // 귀환 포탈은 레이드 장소 반대쪽(오른쪽 위) 구석에 둬서 도착 지점과 겹치지 않게 한다.
+            var returnPos = raidCenter + new Vector3(patrolHalfWidth - margin, 0f, patrolHalfDepth - margin);
+            var returnArrival = entrancePos + new Vector3(-3f, 0f, 0f); // 입구 포탈에 바로 다시 안 걸리도록 살짝 떨어뜨림
+
+            var cam = Camera.main;
+
+            var entranceGo = new GameObject("RaidEntrancePortal");
+            entranceGo.transform.position = entrancePos;
+            UnitVisual.AttachCube(entranceGo.transform, new Color(0.6f, 0.2f, 0.9f), 1.2f);
+            var entrancePortal = entranceGo.AddComponent<RaidPortal>();
+            entrancePortal.Setup(entranceArrival, cam);
+
+            var returnGo = new GameObject("RaidReturnPortal");
+            returnGo.transform.position = returnPos;
+            UnitVisual.AttachCube(returnGo.transform, new Color(0.2f, 0.8f, 0.9f), 1.2f);
+            var returnPortal = returnGo.AddComponent<RaidPortal>();
+            returnPortal.Setup(returnArrival, cam);
+
+            var raidManagerGo = new GameObject("RaidManager");
+            raidManagerGo.AddComponent<RaidManager>().Setup(_game, raidBossTemplate, raidCenter, entrancePortal, returnPortal);
+        }
+
+        // CreateGround와 같은 방식이지만, 위치/크기/색을 지정할 수 있는 버전 (레이드 장소용).
+        private static void CreateFlatGround(Vector3 center, float halfWidth, float halfDepth, Color color)
+        {
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            ground.name = "RaidGround";
+            ground.transform.position = center;
+            ground.transform.localScale = new Vector3(halfWidth * 2f / 10f, 1f, halfDepth * 2f / 10f); // 기본 10x10 평면 기준 스케일 환산
+
+            var renderer = ground.GetComponent<Renderer>();
+            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+            renderer.material = new Material(shader) { color = color };
         }
 
         private void HandleUnitPlaced(int x, int y, BattleUnit unit)
@@ -204,6 +254,8 @@ namespace MRD.Game
                 lineMonsterTemplate = AssetDatabase.LoadAssetAtPath<MonsterData>("Assets/Data/Monsters/LineMonster_Basic.asset");
             if (bossTemplate == null)
                 bossTemplate = AssetDatabase.LoadAssetAtPath<MonsterData>("Assets/Data/Monsters/Boss_ChaosGuardian.asset");
+            if (raidBossTemplate == null)
+                raidBossTemplate = AssetDatabase.LoadAssetAtPath<MonsterData>("Assets/Data/Monsters/RaidBoss_AncientColossus.asset");
 
             if (starterRoster.Count == 0)
             {

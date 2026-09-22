@@ -76,6 +76,8 @@ namespace MRD.EditorTools
             ok &= CheckFuseRemovesFieldMaterials();
             ok &= CheckSelectionMath();
             ok &= CheckUnitMover();
+            ok &= CheckRaidPortalTeleport();
+            ok &= CheckRaidBossDeathGrantsGemsAndRespawns();
             // 씬을 다시 로드하면 그 전에 로드해둔 CharacterData 참조가 무효화될 수 있으니 항상 마지막에 실행한다.
             ok &= CheckSceneSetup();
 
@@ -966,6 +968,89 @@ namespace MRD.EditorTools
             finally
             {
                 Object.DestroyImmediate(go);
+            }
+
+            return ok;
+        }
+
+        // RaidPortal이 반경 안에 들어온 유닛만 목적지로 순간이동시키고, 반경 밖의 유닛은 그대로 두는지 검증한다.
+        private static bool CheckRaidPortalTeleport()
+        {
+            bool ok;
+            var portalGo = new GameObject("SmokeTest_RaidPortal");
+            var nearGo = new GameObject("SmokeTest_RaidPortal_Near");
+            var farGo = new GameObject("SmokeTest_RaidPortal_Far");
+
+            try
+            {
+                portalGo.transform.position = Vector3.zero;
+                var portal = portalGo.AddComponent<RaidPortal>();
+                var target = new Vector3(100f, 0f, 0f);
+                portal.Setup(target);
+
+                nearGo.transform.position = new Vector3(0.5f, 0f, 0f); // 포탈 기본 반경(1.5) 안
+                var nearUnit = nearGo.AddComponent<BattleUnit>();
+
+                farGo.transform.position = new Vector3(20f, 0f, 0f); // 포탈 반경 밖
+                var farUnit = farGo.AddComponent<BattleUnit>();
+
+                portal.Tick(new List<BattleUnit> { nearUnit, farUnit });
+
+                ok = LogAndCheck("반경 안의 유닛이 목적지로 순간이동함", nearGo.transform.position == target, nearGo.transform.position.ToString());
+                ok &= LogAndCheck("반경 밖의 유닛은 그대로 있음", farGo.transform.position != target, farGo.transform.position.ToString());
+            }
+            finally
+            {
+                Object.DestroyImmediate(portalGo);
+                Object.DestroyImmediate(nearGo);
+                Object.DestroyImmediate(farGo);
+            }
+
+            return ok;
+        }
+
+        // RaidManager가 시작하자마자 보스를 등장시키고, 보스를 처치하면 보석을 지급하는지 검증한다.
+        // (5초 후 재등장은 RaidManager.Update가 비공개라 헤드리스 테스트에서는 직접 확인하지 않는다.)
+        private static bool CheckRaidBossDeathGrantsGemsAndRespawns()
+        {
+            var bossTemplate = AssetDatabase.LoadAssetAtPath<MonsterData>("Assets/Data/Monsters/RaidBoss_AncientColossus.asset");
+
+            bool ok = LogAndCheck("RaidBoss_AncientColossus 에셋 로드", bossTemplate != null, (bossTemplate != null).ToString());
+            if (bossTemplate == null) return ok;
+
+            var gameGo = new GameObject("SmokeTest_Raid_GameManager");
+            var entranceGo = new GameObject("SmokeTest_Raid_Entrance");
+            var returnGo = new GameObject("SmokeTest_Raid_Return");
+            var managerGo = new GameObject("SmokeTest_Raid_Manager");
+
+            try
+            {
+                var game = gameGo.AddComponent<GameManager>();
+                game.Configure(3, 3, null, null, null, null);
+                game.PlaceUnit(0, 0, null, out _); // GameManager의 지연 초기화(EnsureInitialized)를 미리 확실히 트리거해둔다 (data==null이라 실제로 배치되진 않음)
+
+                var entrancePortal = entranceGo.AddComponent<RaidPortal>();
+                entrancePortal.Setup(Vector3.zero);
+                var returnPortal = returnGo.AddComponent<RaidPortal>();
+                returnPortal.Setup(Vector3.zero);
+
+                var raidManager = managerGo.AddComponent<RaidManager>();
+                raidManager.Setup(game, bossTemplate, Vector3.zero, entrancePortal, returnPortal);
+
+                ok &= LogAndCheck("레이드 보스가 시작과 함께 등장함", raidManager.CurrentBoss != null, (raidManager.CurrentBoss != null).ToString());
+
+                int gemsBefore = game.Gems;
+                if (raidManager.CurrentBoss != null)
+                    raidManager.CurrentBoss.TakeTrueDamage(999999f);
+
+                ok &= LogAndCheck("보스 처치 시 보석 지급됨", game.Gems > gemsBefore, game.Gems.ToString());
+            }
+            finally
+            {
+                Object.DestroyImmediate(gameGo);
+                Object.DestroyImmediate(entranceGo);
+                Object.DestroyImmediate(returnGo);
+                Object.DestroyImmediate(managerGo);
             }
 
             return ok;
