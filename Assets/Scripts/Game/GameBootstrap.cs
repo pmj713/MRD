@@ -52,6 +52,7 @@ namespace MRD.Game
             AutoLoadMissingReferences();
 #endif
             SetupCamera();
+            DrawPatrolPathVisual();
             var selectionController = gameObject.AddComponent<SelectionController>();
             gameObject.AddComponent<CameraEdgePan>();
             gameObject.AddComponent<CameraZoom>();
@@ -131,6 +132,26 @@ namespace MRD.Game
                 new Vector3(xMax, 0f, zMin), // 오른쪽 아래
                 new Vector3(xMax, 0f, zMax), // 오른쪽 위
             };
+        }
+
+        // 몬스터가 순찰하는 경로를 바닥 위에 밝은 선으로 그려서 한눈에 보이게 한다.
+        private void DrawPatrolPathVisual()
+        {
+            var corners = BuildPatrolPath();
+
+            var pathGo = new GameObject("PatrolPathVisual");
+            var line = pathGo.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.loop = true;
+            line.positionCount = corners.Length;
+            for (int i = 0; i < corners.Length; i++)
+                line.SetPosition(i, corners[i] + Vector3.up * 0.05f); // 바닥 평면과 겹쳐서 깜빡이지(z-fighting) 않도록 살짝 띄운다
+
+            line.startWidth = 0.5f;
+            line.endWidth = 0.5f;
+
+            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+            line.material = new Material(shader) { color = new Color(1f, 0.9f, 0.15f) }; // 바닥/유닛 색과 구분되는 밝은 노란색
         }
 
         private static void HandleRoundStarted(int round, bool isLeftBoss, bool isRightBoss)
