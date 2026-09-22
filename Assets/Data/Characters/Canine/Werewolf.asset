@@ -37,8 +37,8 @@ MonoBehaviour:
     triggerChancePercent: 0
   fusionRecipe:
     requiredCharacters:
-    - {fileID: 11400000, guid: 3b4b27f0fd504d2a83345f4922759ed6, type: 2}
-    - {fileID: 11400000, guid: 3b4b27f0fd504d2a83345f4922759ed6, type: 2}
-    - {fileID: 11400000, guid: 3b4b27f0fd504d2a83345f4922759ed6, type: 2}
+    - {fileID: 11400000, guid: bb911bcebb890db47a0960e635f98b38, type: 2}
+    - {fileID: 11400000, guid: bb911bcebb890db47a0960e635f98b38, type: 2}
+    - {fileID: 11400000, guid: bb911bcebb890db47a0960e635f98b38, type: 2}
     goldCost: 200
     gemCost: 0
