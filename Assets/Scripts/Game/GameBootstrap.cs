@@ -140,13 +140,7 @@ namespace MRD.Game
             var corners = BuildPatrolPath();
 
             var pathGo = new GameObject("PatrolPathVisual");
-            // LineRenderer 기본 정렬(View)은 카메라를 항상 마주보는 billboard라, 바닥에 눕혀둔 선을
-            // 비스듬한 각도에서 보면 일부 구간이 뒷면 컬링으로 안 보일 수 있다. TransformZ 정렬로 바꾸고
-            // 트랜스폼의 로컬 Z축이 월드 위(Y)를 향하도록 눕혀서, 바닥에 진짜로 평평하게 깔린 선으로 만든다.
-            pathGo.transform.rotation = Quaternion.Euler(-90f, 0f, 0f);
-
             var line = pathGo.AddComponent<LineRenderer>();
-            line.alignment = LineAlignment.TransformZ;
             line.useWorldSpace = true;
             line.loop = true;
             line.positionCount = corners.Length;
@@ -158,7 +152,9 @@ namespace MRD.Game
             line.endWidth = width;
 
             var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-            line.material = new Material(shader) { color = new Color(1f, 0.9f, 0.15f) }; // 바닥/유닛 색과 구분되는 밝은 노란색
+            var material = new Material(shader) { color = new Color(1f, 0.9f, 0.15f) }; // 바닥/유닛 색과 구분되는 밝은 노란색
+            material.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off); // 뒷면 컬링 때문에 일부 각도에서 선이 끊겨 보이는 것을 방지
+            line.material = material;
         }
 
         private static void HandleRoundStarted(int round, bool isLeftBoss, bool isRightBoss)
