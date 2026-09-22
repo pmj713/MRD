@@ -22,8 +22,8 @@ namespace MRD.Wave
 
         public int CurrentRound { get; private set; }
         public int AliveMonsterCount => _activeMonsters.Count;
-        public int TotalRounds => config.totalRounds;
-        public int MaxAliveMonsters => config.maxAliveMonsters;
+        public int TotalRounds => config != null ? config.totalRounds : 0;
+        public int MaxAliveMonsters => config != null ? config.maxAliveMonsters : 0;
         public bool IsGameOver { get; private set; }
         public bool IsAllRoundsCleared { get; private set; }
 
