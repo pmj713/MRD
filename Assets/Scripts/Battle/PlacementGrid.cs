@@ -37,24 +37,29 @@ namespace MRD.Battle
 
         public BattleUnit GetUnitAt(int x, int y) => _slots.TryGetValue((x, y), out var unit) ? unit : null;
 
-        /// <summary>비어 있는 슬롯을 하나 찾는다 (소환 등으로 얻은 유닛을 자동 배치할 때 사용).</summary>
+        /// <summary>
+        /// 비어 있는 슬롯을 하나 찾는다 (소환 등으로 얻은 유닛을 자동 배치할 때 사용).
+        /// 기존 격자가 꽉 차 있으면 뒤쪽에 줄을 추가해서 항상 빈 슬롯을 찾아준다
+        /// (소환 개수에 상한을 두지 않기 위함 - 유닛끼리 좌표가 겹칠 일도 없어진다).
+        /// </summary>
         public bool TryFindEmptySlot(out int x, out int y)
         {
-            for (int yy = 0; yy < height; yy++)
+            while (true)
             {
-                for (int xx = 0; xx < width; xx++)
+                for (int yy = 0; yy < height; yy++)
                 {
-                    if (!IsSlotOccupied(xx, yy))
+                    for (int xx = 0; xx < width; xx++)
                     {
-                        x = xx;
-                        y = yy;
-                        return true;
+                        if (!IsSlotOccupied(xx, yy))
+                        {
+                            x = xx;
+                            y = yy;
+                            return true;
+                        }
                     }
                 }
+                height++;
             }
-            x = 0;
-            y = 0;
-            return false;
         }
 
         /// <summary>주어진 유닛이 배치돼 있는 슬롯 좌표를 찾는다 (판매 등 유닛 참조로부터 슬롯을 역추적할 때 사용).</summary>
