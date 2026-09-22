@@ -58,7 +58,9 @@ namespace MRD.UI
 
         private void Update()
         {
-            if (_game == null) return;
+            // _game.WaveSpawner는 GameManager가 EnsureInitialized를 거쳐야 채워진다. 플레이 도중 스크립트가
+            // 재컴파일(핫 리로드)되면 아주 짧은 순간 이 참조가 비어있는 프레임이 생길 수 있어 방어적으로 확인한다.
+            if (_game == null || _game.WaveSpawner == null) return;
 
             _goldText.text = $"골드: {_game.Gold}";
             _gemsText.text = $"보석: {_game.Gems}";
