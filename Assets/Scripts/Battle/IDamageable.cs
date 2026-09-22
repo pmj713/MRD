@@ -3,9 +3,9 @@ using UnityEngine;
 namespace MRD.Battle
 {
     /// <summary>
-    /// 피해를 입고 공격 대상이 될 수 있는 존재의 공통 인터페이스.
-    /// BattleUnit과 EnemyUnit(MRD.Wave)이 각각 구현해서, CombatManager가 아군/적 구분 없이
-    /// 동일한 방식으로 데미지를 판정할 수 있게 한다.
+    /// 피해를 입고 공격 대상이 될 수 있는 존재의 공통 인터페이스. 현재는 EnemyUnit(MRD.Wave)만 구현한다 -
+    /// 아군(BattleUnit)은 몬스터에게 공격받지 않으므로 데미지를 받을 필요가 없다. CombatManager가
+    /// MRD.Wave에 직접 의존하지 않도록 이 인터페이스로 대상을 다룬다.
     /// </summary>
     public interface IDamageable
     {
@@ -19,7 +19,6 @@ namespace MRD.Battle
         int SpawnOrder { get; }
 
         void TakePhysicalDamage(float rawDamage);
-        void TakeMagicDamage(float rawDamage);
         void TakeTrueDamage(float rawDamage);
     }
 }

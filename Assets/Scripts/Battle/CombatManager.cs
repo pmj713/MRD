@@ -7,9 +7,8 @@ namespace MRD.Battle
     /// <summary>
     /// 아군 BattleUnit을 등록해두고, OnAttack 이벤트를 받아 실제 평타 판정
     /// (데미지, 치명타, 마나 획득, 확률형 패시브 발동)을 처리한다.
-    /// 공격 대상은 IDamageable로만 다루기 때문에, 실제 몬스터(MRD.Wave.EnemyUnit)든
-    /// 테스트용 BattleUnit이든 상관없이 동일하게 동작한다. WaveSpawner가 스폰한
-    /// EnemyUnit을 RegisterEnemyTarget으로 등록해주면 실제 웨이브 몬스터를 공격하게 된다.
+    /// 공격 대상은 IDamageable로만 다루기 때문에 CombatManager가 MRD.Wave에 직접 의존하지 않는다.
+    /// WaveSpawner가 스폰한 EnemyUnit을 RegisterEnemyTarget으로 등록해주면 실제 웨이브 몬스터를 공격하게 된다.
     /// 타겟팅은 attacker의 attackRange(사거리) 안에 있는 대상 중 가장 먼저 등장한(=가장 오래 살아있는) 쪽을 고른다.
     /// </summary>
     public class CombatManager : MonoBehaviour
@@ -24,14 +23,12 @@ namespace MRD.Battle
         {
             _allies.Add(unit);
             unit.OnAttack += ProcessAttack;
-            unit.OnDeath += HandleAllyDeath;
         }
 
         public void UnregisterAlly(BattleUnit unit)
         {
             _allies.Remove(unit);
             unit.OnAttack -= ProcessAttack;
-            unit.OnDeath -= HandleAllyDeath;
         }
 
         public void RegisterEnemyTarget(IDamageable target) => _enemyTargets.Add(target);
@@ -51,28 +48,21 @@ namespace MRD.Battle
             bool isCrit = Random.Range(0f, 100f) < baseCritChancePercent;
             float critMultiplier = isCrit ? Mathf.Max(1f, stats.criticalMultiplier) : 1f;
 
-            if (stats.physicalAttack > 0f)
-                target.TakePhysicalDamage(stats.physicalAttack * critMultiplier);
-
-            if (stats.magicAttack > 0f)
-                target.TakeMagicDamage(stats.magicAttack * critMultiplier);
+            target.TakePhysicalDamage(stats.attackPower * critMultiplier);
 
             attacker.AddMana(manaPerHit);
             TryRollTriggerSkill(attacker, target);
         }
 
-        // 트리거 패시브(평타 시 % 확률 발동)는 방어력/마법저항을 무시하는 추가 타격으로 통일 처리한다.
+        // 트리거 패시브(평타 시 % 확률 발동)는 방어력을 무시하는 추가 타격으로 통일 처리한다.
         private static void TryRollTriggerSkill(BattleUnit attacker, IDamageable target)
         {
             var skill = attacker.Source.passiveSkill;
             if (skill == null || skill.skillType != SkillType.Trigger) return;
             if (Random.Range(0f, 100f) >= skill.triggerChancePercent) return;
 
-            float baseDamage = Mathf.Max(attacker.EffectiveStats.physicalAttack, attacker.EffectiveStats.magicAttack);
-            target.TakeTrueDamage(baseDamage * 0.5f);
+            target.TakeTrueDamage(attacker.EffectiveStats.attackPower * 0.5f);
         }
-
-        private void HandleAllyDeath(BattleUnit unit) => UnregisterAlly(unit);
 
         // 사거리(attacker의 EffectiveStats.attackRange) 안에 있는 대상 중 SpawnOrder가 가장 작은(=가장
         // 먼저 등장해서 가장 오래 살아있는) 쪽을 고른다. 사거리가 0 이하로 설정된(아직 값을 안 채운) 유닛은

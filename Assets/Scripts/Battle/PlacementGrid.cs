@@ -102,7 +102,6 @@ namespace MRD.Battle
             go.transform.SetParent(transform);
             var unit = go.AddComponent<BattleUnit>();
             unit.Initialize(data);
-            unit.OnDeath += HandleAnyUnitDeath;
 
             _slots[(x, y)] = unit;
             combatManager?.RegisterAlly(unit);
@@ -119,7 +118,6 @@ namespace MRD.Battle
                 return false;
 
             _slots.Remove((x, y));
-            unit.OnDeath -= HandleAnyUnitDeath;
             combatManager?.UnregisterAlly(unit);
             OnUnitRemoved?.Invoke(x, y, unit);
 
@@ -142,26 +140,6 @@ namespace MRD.Battle
             _slots.Remove((fromX, fromY));
             _slots[(toX, toY)] = unit;
             return true;
-        }
-
-        // 배치된 유닛이 전투 중 사망하면 슬롯을 비워서 다시 배치할 수 있게 한다.
-        // (CombatManager 등록 해제는 BattleUnit.OnDeath를 통해 CombatManager 스스로 처리한다.)
-        private void HandleAnyUnitDeath(BattleUnit unit)
-        {
-            (int x, int y)? foundKey = null;
-            foreach (var kvp in _slots)
-            {
-                if (kvp.Value == unit)
-                {
-                    foundKey = kvp.Key;
-                    break;
-                }
-            }
-
-            if (!foundKey.HasValue) return;
-
-            _slots.Remove(foundKey.Value);
-            OnUnitRemoved?.Invoke(foundKey.Value.x, foundKey.Value.y, unit);
         }
     }
 }

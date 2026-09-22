@@ -34,10 +34,7 @@ namespace MRD.Wave
         /// <summary>물리 데미지. 몬스터의 방어력에 따라 감쇄된다.</summary>
         public void TakePhysicalDamage(float rawDamage) => ApplyDamage(rawDamage * CombatMath.CalculateMitigation(Source.baseArmor));
 
-        /// <summary>마법 데미지. 몬스터의 마법저항에 따라 감쇄된다.</summary>
-        public void TakeMagicDamage(float rawDamage) => ApplyDamage(rawDamage * CombatMath.CalculateMitigation(Source.baseMagicResist));
-
-        /// <summary>방어력/마법저항을 무시하는 데미지.</summary>
+        /// <summary>방어력을 무시하는 데미지.</summary>
         public void TakeTrueDamage(float rawDamage) => ApplyDamage(rawDamage);
 
         private void ApplyDamage(float amount)

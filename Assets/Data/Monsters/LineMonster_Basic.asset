@@ -11,12 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f23615a385fd4653a2f14b9068fb9c80, type: 3}
   m_Name: LineMonster_Basic
-  m_EditorClassIdentifier:
-  monsterName: 하급 마수
+  m_EditorClassIdentifier: 
+  monsterName: "\uD558\uAE09 \uB9C8\uC218"
   baseHealth: 100
   baseArmor: 0
-  baseMagicResist: 0
   healthGrowthPerRound: 1.05
-  moveSpeed: 10
+  moveSpeed: 1
   goldReward: 5
   isBoss: 0

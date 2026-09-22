@@ -47,9 +47,8 @@ namespace MRD.EditorTools
                 var unit = go.AddComponent<BattleUnit>();
                 unit.Initialize(whiteTiger);
 
-                ok &= ApproxLog("EffectiveStats.physicalAttack == 기본 스탯", unit.EffectiveStats.physicalAttack, whiteTiger.stats.physicalAttack);
+                ok &= ApproxLog("EffectiveStats.attackPower == 기본 스탯", unit.EffectiveStats.attackPower, whiteTiger.stats.attackPower);
                 ok &= ApproxLog("EffectiveStats.attackSpeed == 기본 스탯", unit.EffectiveStats.attackSpeed, whiteTiger.stats.attackSpeed);
-                ok &= ApproxLog("CurrentHealth(초기값 == 기본 체력)", unit.CurrentHealth, whiteTiger.stats.health);
 
                 bool usedSkill = unit.TryUseActiveSkill();
                 ok &= LogAndCheck("마나 부족 상태에서 스킬 사용 실패해야 함", !usedSkill, usedSkill.ToString());
@@ -64,7 +63,7 @@ namespace MRD.EditorTools
             }
 
             ok &= CheckFullRoster();
-            ok &= CheckCombat(puppy, werewolf, whiteTiger);
+            ok &= CheckCombat(werewolf, whiteTiger);
             ok &= CheckAttackRangeTargeting();
             ok &= CheckWaveSpawner();
             ok &= CheckBattleUnitAttacksEnemyUnit(werewolf);
@@ -94,7 +93,7 @@ namespace MRD.EditorTools
                 return false;
             }
 
-            Debug.Log($"[SmokeTest] 로드됨: {data.characterName} (등급={data.rarity}, 체력={data.stats.health})");
+            Debug.Log($"[SmokeTest] 로드됨: {data.characterName} (등급={data.rarity}, 공격력={data.stats.attackPower})");
             return true;
         }
 
@@ -165,15 +164,16 @@ namespace MRD.EditorTools
         }
 
         // CombatManager가 평타 데미지/마나 획득/사망 처리/트리거 패시브를 실제로 처리하는지 검증한다.
-        private static bool CheckCombat(CharacterData puppyData, CharacterData werewolfData, CharacterData whiteTigerData)
+        private static bool CheckCombat(CharacterData werewolfData, CharacterData whiteTigerData)
         {
             bool ok = true;
             var managerGo = new GameObject("SmokeTest_CombatManager");
             var allyGo = new GameObject("SmokeTest_Ally_Werewolf");
-            var enemyGo = new GameObject("SmokeTest_Enemy_Puppy");
+            var enemyGo = new GameObject("SmokeTest_Enemy_Target");
             var tigerGo = new GameObject("SmokeTest_Ally_WhiteTiger");
             var dummyGo = new GameObject("SmokeTest_Enemy_Dummy");
-            CharacterData dummyData = null;
+            MonsterData enemyMonster = null;
+            MonsterData dummyMonster = null;
 
             try
             {
@@ -181,30 +181,37 @@ namespace MRD.EditorTools
 
                 var werewolfUnit = allyGo.AddComponent<BattleUnit>();
                 werewolfUnit.Initialize(werewolfData);
-                var puppyUnit = enemyGo.AddComponent<BattleUnit>();
-                puppyUnit.Initialize(puppyData);
+
+                // 아군(BattleUnit)은 몬스터에게 공격받지 않으므로, 대상 역할은 항상 실제 EnemyUnit(합성 MonsterData)으로 만든다.
+                enemyMonster = ScriptableObject.CreateInstance<MonsterData>();
+                enemyMonster.monsterName = "전투 테스트용 몬스터";
+                enemyMonster.baseHealth = 500f;
+                enemyMonster.baseArmor = 0f;
+                enemyMonster.healthGrowthPerRound = 1f;
+                var enemyUnit = enemyGo.AddComponent<EnemyUnit>();
+                enemyUnit.Initialize(enemyMonster, round: 1);
 
                 bool deathFired = false;
-                puppyUnit.OnDeath += _ => deathFired = true;
+                enemyUnit.OnDeath += _ => deathFired = true;
 
                 manager.RegisterAlly(werewolfUnit);
-                manager.RegisterEnemyTarget(puppyUnit);
+                manager.RegisterEnemyTarget(enemyUnit);
 
-                // 평타 1회: 강아지는 방어력 0이라 데미지가 [무크리, 크리] 범위 안에 들어야 한다.
-                float healthBefore = puppyUnit.CurrentHealth;
+                // 평타 1회: 몬스터는 방어력 0이라 데미지가 [무크리, 크리] 범위 안에 들어야 한다.
+                float healthBefore = enemyUnit.CurrentHealth;
                 manager.ProcessAttack(werewolfUnit);
-                float actualDamage = healthBefore - puppyUnit.CurrentHealth;
-                float minDamage = werewolfData.stats.physicalAttack;
-                float maxDamage = werewolfData.stats.physicalAttack * werewolfData.stats.criticalMultiplier;
+                float actualDamage = healthBefore - enemyUnit.CurrentHealth;
+                float minDamage = werewolfData.stats.attackPower;
+                float maxDamage = werewolfData.stats.attackPower * werewolfData.stats.criticalMultiplier;
                 ok &= LogAndCheck("평타 데미지가 기대 범위 내(무크리~크리)",
                     actualDamage >= minDamage - 0.01f && actualDamage <= maxDamage + 0.01f, actualDamage.ToString());
                 ok &= ApproxLog("평타 1회 후 마나 증가", werewolfUnit.CurrentMana, 10f);
 
                 // 죽을 때까지 반복 공격 -> OnDeath 발생 확인
-                for (int i = 0; i < 20 && !puppyUnit.IsDead; i++)
+                for (int i = 0; i < 20 && !enemyUnit.IsDead; i++)
                     manager.ProcessAttack(werewolfUnit);
 
-                ok &= LogAndCheck("적 유닛이 사망 처리됨", puppyUnit.IsDead, puppyUnit.IsDead.ToString());
+                ok &= LogAndCheck("적 유닛이 사망 처리됨", enemyUnit.IsDead, enemyUnit.IsDead.ToString());
                 ok &= LogAndCheck("OnDeath 이벤트 발생", deathFired, deathFired.ToString());
 
                 // 대상이 사라진 뒤에도 예외 없이 처리되어야 한다 (자동 등록 해제 확인)
@@ -220,25 +227,23 @@ namespace MRD.EditorTools
                 }
 
                 // 백호의 트리거 패시브(15%)가 통계적으로 실제 발동하는지 확인.
-                // 대상은 체력을 사실상 무한으로 부풀린 더미(백호 스탯 복사 + 체력만 극단적으로 올림)로 만들어 도중에 죽지 않게 한다.
+                // 대상은 체력을 사실상 무한으로 부풀린 더미 몬스터로 만들어 도중에 죽지 않게 한다.
                 var tigerUnit = tigerGo.AddComponent<BattleUnit>();
                 tigerUnit.Initialize(whiteTigerData);
 
-                var dummyStats = whiteTigerData.stats;
-                dummyStats.health = 100000000f;
-                dummyData = ScriptableObject.CreateInstance<CharacterData>();
-                dummyData.characterName = "트리거 테스트용 더미";
-                dummyData.stats = dummyStats;
-                var dummyUnit = dummyGo.AddComponent<BattleUnit>();
-                dummyUnit.Initialize(dummyData);
+                dummyMonster = ScriptableObject.CreateInstance<MonsterData>();
+                dummyMonster.monsterName = "트리거 테스트용 더미";
+                dummyMonster.baseHealth = 100000000f;
+                dummyMonster.baseArmor = 0f;
+                dummyMonster.healthGrowthPerRound = 1f;
+                var dummyUnit = dummyGo.AddComponent<EnemyUnit>();
+                dummyUnit.Initialize(dummyMonster, round: 1);
 
                 manager.RegisterAlly(tigerUnit);
                 manager.RegisterEnemyTarget(dummyUnit);
 
-                float mitPhys = 100f / (100f + dummyUnit.EffectiveStats.armor);
-                float mitMagic = 100f / (100f + dummyUnit.EffectiveStats.magicResist);
-                float maxNoTriggerDamage = (tigerUnit.EffectiveStats.physicalAttack * mitPhys
-                    + tigerUnit.EffectiveStats.magicAttack * mitMagic) * tigerUnit.EffectiveStats.criticalMultiplier;
+                float mitigation = 100f / (100f + dummyMonster.baseArmor);
+                float maxNoTriggerDamage = tigerUnit.EffectiveStats.attackPower * mitigation * tigerUnit.EffectiveStats.criticalMultiplier;
 
                 bool triggerObserved = false;
                 for (int i = 0; i < 200; i++)
@@ -262,7 +267,8 @@ namespace MRD.EditorTools
                 Object.DestroyImmediate(enemyGo);
                 Object.DestroyImmediate(tigerGo);
                 Object.DestroyImmediate(dummyGo);
-                if (dummyData != null) Object.DestroyImmediate(dummyData);
+                if (enemyMonster != null) Object.DestroyImmediate(enemyMonster);
+                if (dummyMonster != null) Object.DestroyImmediate(dummyMonster);
             }
 
             return ok;
@@ -281,6 +287,7 @@ namespace MRD.EditorTools
             var newGo = new GameObject("SmokeTest_RangeNew");
             var outOfRangeGo = new GameObject("SmokeTest_RangeOutOfRange");
             CharacterData attackerData = null;
+            MonsterData targetMonster = null;
 
             try
             {
@@ -290,29 +297,34 @@ namespace MRD.EditorTools
                 attackerData.characterName = "사거리 테스트용 유닛";
                 attackerData.stats = new CharacterStats
                 {
-                    physicalAttack = 10f,
+                    attackPower = 10f,
                     attackSpeed = 1f,
                     criticalMultiplier = 1f,
                     attackRange = 5f,
-                    health = 1000f,
                 };
 
                 var attacker = attackerGo.AddComponent<BattleUnit>();
                 attacker.Initialize(attackerData);
                 attackerGo.transform.position = Vector3.zero;
 
+                targetMonster = ScriptableObject.CreateInstance<MonsterData>();
+                targetMonster.monsterName = "사거리 테스트용 몬스터";
+                targetMonster.baseHealth = 1000f;
+                targetMonster.baseArmor = 0f;
+                targetMonster.healthGrowthPerRound = 1f;
+
                 // outOfRange를 old/new보다 먼저 등장시켜서, "가장 먼저 등장" 규칙이 사거리 필터보다
                 // 우선하지 않는지(=사거리 밖이면 아무리 먼저 나왔어도 제외되는지)까지 같이 확인한다.
-                var outOfRange = outOfRangeGo.AddComponent<BattleUnit>();
-                outOfRange.Initialize(attackerData);
+                var outOfRange = outOfRangeGo.AddComponent<EnemyUnit>();
+                outOfRange.Initialize(targetMonster, round: 1);
                 outOfRangeGo.transform.position = new Vector3(10f, 0f, 0f); // 거리 10 (사거리 밖)
 
-                var old = oldGo.AddComponent<BattleUnit>();
-                old.Initialize(attackerData); // outOfRange보다 나중, new보다 먼저 등장 (SpawnOrder가 더 작음)
+                var old = oldGo.AddComponent<EnemyUnit>();
+                old.Initialize(targetMonster, round: 1); // outOfRange보다 나중, new보다 먼저 등장 (SpawnOrder가 더 작음)
                 oldGo.transform.position = new Vector3(4.5f, 0f, 0f); // 거리 4.5 (사거리 이내, new보다 멂)
 
-                var newer = newGo.AddComponent<BattleUnit>();
-                newer.Initialize(attackerData); // 가장 나중에 등장
+                var newer = newGo.AddComponent<EnemyUnit>();
+                newer.Initialize(targetMonster, round: 1); // 가장 나중에 등장
                 newGo.transform.position = new Vector3(3f, 0f, 0f); // 거리 3 (사거리 이내, old보다 가까움)
 
                 manager.RegisterAlly(attacker);
@@ -355,6 +367,7 @@ namespace MRD.EditorTools
                 Object.DestroyImmediate(newGo);
                 Object.DestroyImmediate(outOfRangeGo);
                 if (attackerData != null) Object.DestroyImmediate(attackerData);
+                if (targetMonster != null) Object.DestroyImmediate(targetMonster);
             }
 
             return ok;
@@ -555,8 +568,8 @@ namespace MRD.EditorTools
                 float healthBefore = enemy.CurrentHealth;
                 manager.ProcessAttack(werewolfUnit);
                 float damage = healthBefore - enemy.CurrentHealth;
-                float minDamage = werewolfData.stats.physicalAttack;
-                float maxDamage = werewolfData.stats.physicalAttack * werewolfData.stats.criticalMultiplier;
+                float minDamage = werewolfData.stats.attackPower;
+                float maxDamage = werewolfData.stats.attackPower * werewolfData.stats.criticalMultiplier;
                 ok &= LogAndCheck("BattleUnit -> EnemyUnit 평타 데미지 범위 내",
                     damage >= minDamage - 0.01f && damage <= maxDamage + 0.01f, damage.ToString());
 
@@ -636,7 +649,7 @@ namespace MRD.EditorTools
             return ok;
         }
 
-        // PlacementGrid가 워크래프트3식 격자 배치(배치/이동/해제/사망 시 자동 해제)를 올바르게 처리하는지 검증한다.
+        // PlacementGrid가 워크래프트3식 격자 배치(배치/이동/해제)를 올바르게 처리하는지 검증한다.
         private static bool CheckPlacementGrid(CharacterData puppyData, CharacterData werewolfData, CharacterData whiteTigerData)
         {
             bool ok = true;
@@ -668,19 +681,12 @@ namespace MRD.EditorTools
                 ok &= LogAndCheck("배치된 백호의 EffectiveStats가 기본 스탯과 일치", whiteTigerUnit.EffectiveStats.attackSpeed == whiteTigerData.stats.attackSpeed,
                     whiteTigerUnit.EffectiveStats.attackSpeed.ToString());
 
-                // 명시적 해제 (판매 등)
-                ok &= LogAndCheck("(2,0) 유닛 해제 성공", grid.TryRemoveUnit(2, 0), "true");
-                ok &= LogAndCheck("해제 후 슬롯이 비어있음", !grid.IsSlotOccupied(2, 0), "true");
-
-                // 전투 중 사망 시 슬롯 자동 해제
+                // 명시적 해제 (판매 등) 시 OnUnitRemoved 이벤트가 발생하는지 확인
                 bool removedEventFired = false;
                 grid.OnUnitRemoved += (_, _, _) => removedEventFired = true;
-                for (int i = 0; i < 20 && !puppyUnit.IsDead; i++)
-                    puppyUnit.TakePhysicalDamage(50f);
-
-                ok &= LogAndCheck("강아지 유닛 사망 처리됨", puppyUnit.IsDead, puppyUnit.IsDead.ToString());
-                ok &= LogAndCheck("사망 시 슬롯(0,0) 자동 해제", !grid.IsSlotOccupied(0, 0), (!grid.IsSlotOccupied(0, 0)).ToString());
-                ok &= LogAndCheck("사망 시 OnUnitRemoved 이벤트 발생", removedEventFired, removedEventFired.ToString());
+                ok &= LogAndCheck("(2,0) 유닛 해제 성공", grid.TryRemoveUnit(2, 0), "true");
+                ok &= LogAndCheck("해제 후 슬롯이 비어있음", !grid.IsSlotOccupied(2, 0), "true");
+                ok &= LogAndCheck("해제 시 OnUnitRemoved 이벤트 발생", removedEventFired, removedEventFired.ToString());
             }
             finally
             {

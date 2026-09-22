@@ -166,9 +166,8 @@ namespace MRD.UI
             _unitInfoText.text =
                 $"{unit.Source.characterName}\n" +
                 $"등급: {unit.Source.rarity}\n" +
-                $"체력: {Mathf.CeilToInt(unit.CurrentHealth)} / {Mathf.CeilToInt(s.health)}\n" +
-                $"공격력: {s.physicalAttack:0} (물리) / {s.magicAttack:0} (마법)\n" +
-                $"공격속도: {s.attackSpeed:0.00}   방어력: {s.armor:0}   마법저항: {s.magicResist:0}";
+                $"공격력: {s.attackPower:0}\n" +
+                $"공격속도: {s.attackSpeed:0.00}   사거리: {s.attackRange:0}   치명타 배율: {s.criticalMultiplier:0.00}";
         }
 
         private void OnSummonClicked(GachaTable table)

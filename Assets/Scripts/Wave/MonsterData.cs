@@ -14,7 +14,6 @@ namespace MRD.Wave
         [Header("1라운드 기준 스탯")]
         public float baseHealth;
         public float baseArmor;
-        public float baseMagicResist;
 
         [Header("라운드당 성장")]
         public float healthGrowthPerRound = 1.05f;

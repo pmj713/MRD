@@ -6,19 +6,14 @@ namespace MRD.Battle
 {
     /// <summary>
     /// 전투에 배치된 캐릭터 하나의 런타임 상태.
-    /// CharacterData(고정 수치)를 그대로 전투 스탯으로 쓰고, 현재 체력/마나/쿨타임을 관리한다.
+    /// 몬스터에게 공격받지 않으므로(항상 아군만 공격을 가함) 체력/피격 개념 없이 공격 관련 상태만 관리한다.
     /// </summary>
-    public class BattleUnit : MonoBehaviour, IDamageable
+    public class BattleUnit : MonoBehaviour
     {
         public CharacterData Source { get; private set; }
         public CharacterStats EffectiveStats { get; private set; }
-
-        public float CurrentHealth { get; private set; }
-        public float CurrentMana { get; private set; }
-        public bool IsDead => CurrentHealth <= 0f;
-        public bool IsTargetable => !IsDead;
         public Vector3 Position => transform.position;
-        public int SpawnOrder { get; private set; }
+        public float CurrentMana { get; private set; }
 
         /// <summary>
         /// 공격 타이머가 한 번 채워질 때마다 발생. 실제 데미지 판정/투사체 생성은
@@ -26,19 +21,14 @@ namespace MRD.Battle
         /// </summary>
         public event Action<BattleUnit> OnAttack;
 
-        /// <summary>체력이 0이 되는 순간 한 번만 발생. 전투 매니저가 이 이벤트로 유닛을 전장에서 제거한다.</summary>
-        public event Action<BattleUnit> OnDeath;
-
         private float _activeSkillCooldownRemaining;
         private float _attackTimer;
 
         public void Initialize(CharacterData source)
         {
             Source = source;
-            SpawnOrder = SpawnOrderCounter.Next();
             EffectiveStats = source.stats;
 
-            CurrentHealth = EffectiveStats.health;
             CurrentMana = 0f;
             _activeSkillCooldownRemaining = 0f;
             _attackTimer = 0f;
@@ -46,8 +36,6 @@ namespace MRD.Battle
 
         private void Update()
         {
-            if (IsDead) return;
-
             if (_activeSkillCooldownRemaining > 0f)
                 _activeSkillCooldownRemaining -= Time.deltaTime;
 
@@ -90,24 +78,6 @@ namespace MRD.Battle
             if (skill == null) return;
 
             CurrentMana = Mathf.Min(CurrentMana + amount, skill.manaCost);
-        }
-
-        /// <summary>물리 데미지. 방어력에 따라 감쇄된다.</summary>
-        public void TakePhysicalDamage(float rawDamage) => ApplyDamage(rawDamage * CombatMath.CalculateMitigation(EffectiveStats.armor));
-
-        /// <summary>마법 데미지. 마법저항에 따라 감쇄된다.</summary>
-        public void TakeMagicDamage(float rawDamage) => ApplyDamage(rawDamage * CombatMath.CalculateMitigation(EffectiveStats.magicResist));
-
-        /// <summary>방어력/마법저항을 무시하는 데미지.</summary>
-        public void TakeTrueDamage(float rawDamage) => ApplyDamage(rawDamage);
-
-        private void ApplyDamage(float amount)
-        {
-            if (IsDead) return;
-
-            CurrentHealth = Mathf.Max(0f, CurrentHealth - amount);
-            if (IsDead)
-                OnDeath?.Invoke(this);
         }
     }
 }

@@ -17,14 +17,10 @@ MonoBehaviour:
   portrait: {fileID: 0}
   rarity: 5
   stats:
-    physicalAttack: 150
-    magicAttack: 150
+    attackPower: 150
     attackSpeed: 1.3
     criticalMultiplier: 2
     attackRange: 13
-    health: 2000
-    armor: 18
-    magicResist: 18
   activeSkill:
     skillName: 대지의 방벽
     description: 주변에 단단한 등껍질의 기운을 둘러 아군을 보호하고 대상에게 피해를 입힌다.

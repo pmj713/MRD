@@ -17,14 +17,10 @@ MonoBehaviour:
   portrait: {fileID: 0}
   rarity: 3
   stats:
-    physicalAttack: 85
-    magicAttack: 0
+    attackPower: 85
     attackSpeed: 1.15
     criticalMultiplier: 1.6
     attackRange: 13
-    health: 700
-    armor: 8
-    magicResist: 8
   activeSkill:
     skillName:
     description:
