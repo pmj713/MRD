@@ -17,12 +17,23 @@ namespace MRD.Gacha
         /// <summary>뽑기에 성공하면 캐릭터를 반환하고, 해당 등급의 실제 유닛이 없으면 null을 반환한다.</summary>
         public CharacterData Roll(GachaTable table)
         {
-            if (table == null || table.weights == null || table.weights.Count == 0 || database == null)
+            if (table == null || table.weights == null || table.weights.Count == 0)
                 return null;
+            if (database == null)
+            {
+                Debug.LogWarning("[MRD] GachaManager.Roll: database가 연결되어 있지 않다 (GameManager.SetCharacterDatabase 확인 필요).");
+                return null;
+            }
 
             var rarity = RollRarity(table.weights);
             var candidates = database.GetByRarity(rarity);
-            if (candidates.Count == 0) return null;
+            if (candidates.Count == 0)
+            {
+                Debug.LogWarning($"[MRD] GachaManager.Roll: '{rarity}' 등급 후보 0마리 " +
+                    $"(데이터베이스 총 {database.allCharacters.Count}마리 등록됨). " +
+                    "CharacterDatabase.asset이 최신 상태로 반영됐는지 확인 필요.");
+                return null;
+            }
 
             return candidates[Random.Range(0, candidates.Count)];
         }
