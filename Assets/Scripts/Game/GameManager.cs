@@ -8,6 +8,15 @@ using MRD.Gacha;
 
 namespace MRD.Game
 {
+    /// <summary>소환 실패 원인. UI에서 "재화 부족"과 "뽑을 유닛 없음"을 구분해서 보여주기 위함.</summary>
+    public enum SummonFailReason
+    {
+        None,
+        NoTable,
+        InsufficientCurrency,
+        NoCandidates,
+    }
+
     /// <summary>
     /// 배치 격자(PlacementGrid), 전투 판정(CombatManager),
     /// 웨이브 진행(WaveSpawner)을 한 곳에서 엮어서 굴리는 최상위 진행 관리자.
@@ -149,18 +158,34 @@ namespace MRD.Game
         /// 지정된 소환 테이블로 한 번 뽑는다. 재화가 부족하거나 해당 등급에 실제 유닛이 없으면 실패한다.
         /// 성공하면 재화를 차감하고 결과 캐릭터를 보유 목록에 추가한다.
         /// </summary>
-        public bool TrySummon(GachaTable table, out CharacterData result)
+        public bool TrySummon(GachaTable table, out CharacterData result) =>
+            TrySummon(table, out result, out _);
+
+        /// <summary>실패 원인(재화 부족/뽑을 유닛 없음)까지 구분해서 알려주는 버전.</summary>
+        public bool TrySummon(GachaTable table, out CharacterData result, out SummonFailReason failReason)
         {
             EnsureInitialized();
             result = null;
+            failReason = SummonFailReason.None;
 
-            if (table == null) return false;
-            if (!TrySpend(table.currency, table.cost)) return false;
+            if (table == null)
+            {
+                failReason = SummonFailReason.NoTable;
+                return false;
+            }
+            if (!TrySpend(table.currency, table.cost))
+            {
+                Debug.LogWarning($"[MRD] 소환 실패: 재화 부족 (필요 {table.currency} {table.cost}, 보유 골드 {Gold} / 보석 {Gems})");
+                failReason = SummonFailReason.InsufficientCurrency;
+                return false;
+            }
 
             var rolled = gachaManager.Roll(table);
             if (rolled == null)
             {
+                Debug.LogWarning($"[MRD] 소환 실패: '{table.tableName}' 테이블로 뽑을 수 있는 유닛이 없어 재화를 환불했다 (데이터베이스 연결 또는 해당 등급 유닛 누락 확인 필요).");
                 Refund(table.currency, table.cost); // 뽑을 대상이 없었으면 재화를 돌려준다
+                failReason = SummonFailReason.NoCandidates;
                 return false;
             }
 

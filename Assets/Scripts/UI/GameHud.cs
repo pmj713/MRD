@@ -58,14 +58,19 @@ namespace MRD.UI
 
         private void Update()
         {
-            // _game.WaveSpawner는 GameManager가 EnsureInitialized를 거쳐야 채워진다. 플레이 도중 스크립트가
-            // 재컴파일(핫 리로드)되면 아주 짧은 순간 이 참조가 비어있는 프레임이 생길 수 있어 방어적으로 확인한다.
-            if (_game == null || _game.WaveSpawner == null) return;
+            if (_game == null) return;
 
             _goldText.text = $"골드: {_game.Gold}";
             _gemsText.text = $"보석: {_game.Gems}";
-            _roundText.text = $"라운드: {_game.WaveSpawner.CurrentRound} / {_game.WaveSpawner.TotalRounds}";
-            _monsterCountText.text = $"몬스터: {_game.WaveSpawner.AliveMonsterCount} / {_game.WaveSpawner.MaxAliveMonsters}";
+
+            // _game.WaveSpawner는 GameManager가 EnsureInitialized를 거쳐야 채워진다. 플레이 도중 스크립트가
+            // 재컴파일(핫 리로드)되면 아주 짧은 순간 이 참조가 비어있는 프레임이 생길 수 있어 방어적으로 확인하되,
+            // 골드/보석 표시는 WaveSpawner와 무관하므로 위에서 먼저 갱신해야 한다.
+            if (_game.WaveSpawner != null)
+            {
+                _roundText.text = $"라운드: {_game.WaveSpawner.CurrentRound} / {_game.WaveSpawner.TotalRounds}";
+                _monsterCountText.text = $"몬스터: {_game.WaveSpawner.AliveMonsterCount} / {_game.WaveSpawner.MaxAliveMonsters}";
+            }
 
             if (_resultTextTimer > 0f)
             {
@@ -176,9 +181,19 @@ namespace MRD.UI
         {
             if (table == null) { ShowResult("소환 테이블이 설정되지 않았습니다"); return; }
 
-            ShowResult(_game.TrySummon(table, out var result)
-                ? $"{result.characterName} 획득! ({result.rarity})"
-                : "소환 실패 (재화 부족)");
+            if (_game.TrySummon(table, out var result, out var failReason))
+            {
+                ShowResult($"{result.characterName} 획득! ({result.rarity})");
+                return;
+            }
+
+            ShowResult(failReason switch
+            {
+                SummonFailReason.InsufficientCurrency =>
+                    $"{(table.currency == GachaCurrency.Gold ? "골드" : "보석")}가 부족합니다 ({table.cost} 필요)",
+                SummonFailReason.NoCandidates => "이 등급에는 아직 유닛이 없습니다",
+                _ => "소환 실패",
+            });
         }
 
         private void OnFuseClicked(CharacterData target)
