@@ -140,15 +140,22 @@ namespace MRD.Game
             var corners = BuildPatrolPath();
 
             var pathGo = new GameObject("PatrolPathVisual");
+            // LineRenderer 기본 정렬(View)은 카메라를 항상 마주보는 billboard라, 바닥에 눕혀둔 선을
+            // 비스듬한 각도에서 보면 일부 구간이 뒷면 컬링으로 안 보일 수 있다. TransformZ 정렬로 바꾸고
+            // 트랜스폼의 로컬 Z축이 월드 위(Y)를 향하도록 눕혀서, 바닥에 진짜로 평평하게 깔린 선으로 만든다.
+            pathGo.transform.rotation = Quaternion.Euler(-90f, 0f, 0f);
+
             var line = pathGo.AddComponent<LineRenderer>();
+            line.alignment = LineAlignment.TransformZ;
             line.useWorldSpace = true;
             line.loop = true;
             line.positionCount = corners.Length;
             for (int i = 0; i < corners.Length; i++)
                 line.SetPosition(i, corners[i] + Vector3.up * 0.05f); // 바닥 평면과 겹쳐서 깜빡이지(z-fighting) 않도록 살짝 띄운다
 
-            line.startWidth = 0.5f;
-            line.endWidth = 0.5f;
+            float width = 0.8f; // 일반 몬스터 큐브 크기(HandleMonsterSpawned의 size)와 맞춘 값
+            line.startWidth = width;
+            line.endWidth = width;
 
             var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
             line.material = new Material(shader) { color = new Color(1f, 0.9f, 0.15f) }; // 바닥/유닛 색과 구분되는 밝은 노란색
