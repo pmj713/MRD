@@ -184,27 +184,40 @@ namespace MRD.Game
             };
         }
 
-        // 몬스터가 순찰하는 경로를 바닥 위에 밝은 선으로 그려서 한눈에 보이게 한다.
+        // 몬스터가 순찰하는 경로를 바닥 위에 밝은 색 테두리로 그려서 한눈에 보이게 한다.
+        // LineRenderer는 카메라 각도에 따라 이어지는 부분이 끊겨 보이는 문제가 반복돼서,
+        // 대신 이미 검증된 큐브 프리미티브 4개(네 변)를 바닥에 눕혀서 테두리를 만든다.
         private void DrawPatrolPathVisual()
         {
-            var corners = BuildPatrolPath();
+            float xMin = patrolCenterX - patrolHalfWidth;
+            float xMax = patrolCenterX + patrolHalfWidth;
+            float zMin = patrolCenterZ - patrolHalfDepth;
+            float zMax = patrolCenterZ + patrolHalfDepth;
 
-            var pathGo = new GameObject("PatrolPathVisual");
-            var line = pathGo.AddComponent<LineRenderer>();
-            line.useWorldSpace = true;
-            line.loop = true;
-            line.positionCount = corners.Length;
-            for (int i = 0; i < corners.Length; i++)
-                line.SetPosition(i, corners[i] + Vector3.up * 0.05f); // 바닥 평면과 겹쳐서 깜빡이지(z-fighting) 않도록 살짝 띄운다
+            const float thickness = 0.8f; // 일반 몬스터 큐브 크기와 맞춘 값
+            const float height = 0.1f; // 바닥에 거의 붙어있는 얇은 두께
+            var color = new Color(1f, 0.9f, 0.15f); // 바닥/유닛 색과 구분되는 밝은 노란색
 
-            float width = 0.8f; // 일반 몬스터 큐브 크기(HandleMonsterSpawned의 size)와 맞춘 값
-            line.startWidth = width;
-            line.endWidth = width;
+            // 네 변의 길이에 두께만큼을 더해서 모서리에서 서로 겹치게 만들어, 이음매에 빈틈이 생기지 않게 한다.
+            CreatePathSegment(new Vector3((xMin + xMax) / 2f, height / 2f, zMin), new Vector3(xMax - xMin + thickness, height, thickness), color);
+            CreatePathSegment(new Vector3((xMin + xMax) / 2f, height / 2f, zMax), new Vector3(xMax - xMin + thickness, height, thickness), color);
+            CreatePathSegment(new Vector3(xMin, height / 2f, (zMin + zMax) / 2f), new Vector3(thickness, height, zMax - zMin + thickness), color);
+            CreatePathSegment(new Vector3(xMax, height / 2f, (zMin + zMax) / 2f), new Vector3(thickness, height, zMax - zMin + thickness), color);
+        }
 
+        private static void CreatePathSegment(Vector3 position, Vector3 scale, Color color)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = "PatrolPathSegment";
+            go.transform.position = position;
+            go.transform.localScale = scale;
+
+            var collider = go.GetComponent<Collider>();
+            if (collider != null) Object.Destroy(collider); // 선택 판정은 화면좌표 기반이라 콜라이더가 필요 없다
+
+            var renderer = go.GetComponent<Renderer>();
             var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-            var material = new Material(shader) { color = new Color(1f, 0.9f, 0.15f) }; // 바닥/유닛 색과 구분되는 밝은 노란색
-            material.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off); // 뒷면 컬링 때문에 일부 각도에서 선이 끊겨 보이는 것을 방지
-            line.material = material;
+            renderer.material = new Material(shader) { color = color };
         }
 
         private static void HandleRoundStarted(int round, bool isLeftBoss, bool isRightBoss)
