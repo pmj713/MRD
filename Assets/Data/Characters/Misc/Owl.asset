@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Owl
-  m_EditorClassIdentifier:
-  characterName: 부엉이
-  flavorText: 밤이 되면 눈을 반짝이는 부엉이.
+  m_EditorClassIdentifier: 
+  characterName: "\uBD80\uC5C9\uC774"
+  flavorText: "\uBC24\uC774 \uB418\uBA74 \uB208\uC744 \uBC18\uC9DD\uC774\uB294 \uBD80\uC5C9\uC774."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 5478965747141173108, guid: d90111aeb6bf0c949aed325e60139b65, type: 3}
   rarity: 0
   stats:
     attackPower: 15
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.3
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

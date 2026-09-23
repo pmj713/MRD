@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: FireHawk
-  m_EditorClassIdentifier:
-  characterName: 화염매
-  flavorText: 날개에서 불꽃을 흩날리며 활공하는 신비한 매.
+  m_EditorClassIdentifier: 
+  characterName: "\uD654\uC5FC\uB9E4"
+  flavorText: "\uB0A0\uAC1C\uC5D0\uC11C \uBD88\uAF43\uC744 \uD769\uB0A0\uB9AC\uBA70 \uD65C\uACF5\uD558\uB294 \uC2E0\uBE44\uD55C \uB9E4."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 5151438861441157847, guid: 71265b5a899fb7f499e095c44733dd16, type: 3}
   rarity: 2
   stats:
     attackPower: 50
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.5
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

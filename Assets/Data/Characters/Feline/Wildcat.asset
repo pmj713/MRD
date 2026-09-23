@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Wildcat
-  m_EditorClassIdentifier:
-  characterName: 들고양이
-  flavorText: 야생에서 홀로 살아가는 날렵한 들고양이.
+  m_EditorClassIdentifier: 
+  characterName: "\uB4E4\uACE0\uC591\uC774"
+  flavorText: "\uC57C\uC0DD\uC5D0\uC11C \uD640\uB85C \uC0B4\uC544\uAC00\uB294 \uB0A0\uB835\uD55C \uB4E4\uACE0\uC591\uC774."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 8670238660001647106, guid: ee31d90c3cd2e9a48bba5c3b859ca414, type: 3}
   rarity: 1
   stats:
     attackPower: 28
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.4
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

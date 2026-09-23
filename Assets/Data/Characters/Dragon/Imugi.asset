@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Imugi
-  m_EditorClassIdentifier:
-  characterName: 이무기
-  flavorText: 용이 되지 못한 이무기. 오랜 세월을 기다려왔다.
+  m_EditorClassIdentifier: 
+  characterName: "\uC774\uBB34\uAE30"
+  flavorText: "\uC6A9\uC774 \uB418\uC9C0 \uBABB\uD55C \uC774\uBB34\uAE30. \uC624\uB79C \uC138\uC6D4\uC744 \uAE30\uB2E4\uB824\uC654\uB2E4."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 2574823575321219669, guid: 8cd6f9f196f7e4741a6a47414a1cdc68, type: 3}
   rarity: 2
   stats:
     attackPower: 50
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.5
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

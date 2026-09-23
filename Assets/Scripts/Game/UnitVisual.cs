@@ -8,6 +8,17 @@ namespace MRD.Game
     /// </summary>
     public static class UnitVisual
     {
+        /// <summary>visualPrefab이 있으면 그 모델을, 없으면 임시 큐브를 붙인다.
+        /// 선택 시 색이 바뀌는 대상 렌더러로 모델의 첫 번째 렌더러(또는 큐브 렌더러)를 반환한다.</summary>
+        public static Renderer AttachVisual(Transform parent, GameObject visualPrefab, Color fallbackColor, float fallbackSize)
+        {
+            if (visualPrefab == null) return AttachCube(parent, fallbackColor, fallbackSize);
+
+            var go = GameObject.Instantiate(visualPrefab, parent, false);
+            go.name = "Visual";
+            return go.GetComponentInChildren<Renderer>();
+        }
+
         public static Renderer AttachCube(Transform parent, Color color, float size)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);

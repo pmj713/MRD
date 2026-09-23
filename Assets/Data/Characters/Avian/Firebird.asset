@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Firebird
-  m_EditorClassIdentifier:
-  characterName: 불새
-  flavorText: 온몸이 불꽃으로 뒤덮인 전설의 새.
+  m_EditorClassIdentifier: 
+  characterName: "\uBD88\uC0C8"
+  flavorText: "\uC628\uBAB8\uC774 \uBD88\uAF43\uC73C\uB85C \uB4A4\uB36E\uC778 \uC804\uC124\uC758 \uC0C8."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 1490211404813229826, guid: 05c6ef1400f5f8a4aab3d9f361b57d04, type: 3}
   rarity: 3
   stats:
     attackPower: 85
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.6
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

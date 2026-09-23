@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Cat
-  m_EditorClassIdentifier:
-  characterName: 고양이
-  flavorText: 도도하고 자유로운 성격의 작은 고양이.
+  m_EditorClassIdentifier: 
+  characterName: "\uACE0\uC591\uC774"
+  flavorText: "\uB3C4\uB3C4\uD558\uACE0 \uC790\uC720\uB85C\uC6B4 \uC131\uACA9\uC758 \uC791\uC740 \uACE0\uC591\uC774."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 1320716241813135256, guid: f527a603589b39d4d8d41dbeb3d80f33, type: 3}
   rarity: 0
   stats:
     attackPower: 15
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.3
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

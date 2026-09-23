@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Softshell
-  m_EditorClassIdentifier:
-  characterName: 자라
-  flavorText: 단단한 등껍질 대신 재빠른 몸놀림을 가진 자라.
+  m_EditorClassIdentifier: 
+  characterName: "\uC790\uB77C"
+  flavorText: "\uB2E8\uB2E8\uD55C \uB4F1\uAECD\uC9C8 \uB300\uC2E0 \uC7AC\uBE60\uB978 \uBAB8\uB180\uB9BC\uC744 \uAC00\uC9C4 \uC790\uB77C."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 4976479093919676877, guid: 3b04c73495110a447a5104de321a6414, type: 3}
   rarity: 1
   stats:
     attackPower: 28
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.4
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

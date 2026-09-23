@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Taotie
-  m_EditorClassIdentifier:
-  characterName: 도철
-  flavorText: 끝없는 탐욕을 상징하는 흉수. 무엇이든 집어삼킨다.
+  m_EditorClassIdentifier: 
+  characterName: "\uB3C4\uCCA0"
+  flavorText: "\uB05D\uC5C6\uB294 \uD0D0\uC695\uC744 \uC0C1\uC9D5\uD558\uB294 \uD749\uC218. \uBB34\uC5C7\uC774\uB4E0 \uC9D1\uC5B4\uC0BC\uD0A8\uB2E4."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 8751292963437598475, guid: a58551bd213b6d34d8b0902b5a1016af, type: 3}
   rarity: 4
   stats:
     attackPower: 100
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.8
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

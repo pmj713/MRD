@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: WildHorse
-  m_EditorClassIdentifier:
-  characterName: 야생마
-  flavorText: 초원을 자유롭게 내달리는 길들여지지 않은 말.
+  m_EditorClassIdentifier: 
+  characterName: "\uC57C\uC0DD\uB9C8"
+  flavorText: "\uCD08\uC6D0\uC744 \uC790\uC720\uB86D\uAC8C \uB0B4\uB2EC\uB9AC\uB294 \uAE38\uB4E4\uC5EC\uC9C0\uC9C0 \uC54A\uC740 \uB9D0."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 2291216813235701524, guid: a9f40cc6af04342439a0e847e02a36ea, type: 3}
   rarity: 1
   stats:
     attackPower: 28
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.4
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

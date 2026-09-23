@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: SpiritTurtle
-  m_EditorClassIdentifier:
-  characterName: 영귀
-  flavorText: 오랜 세월을 살아 신령한 기운을 얻은 거북.
+  m_EditorClassIdentifier: 
+  characterName: "\uC601\uADC0"
+  flavorText: "\uC624\uB79C \uC138\uC6D4\uC744 \uC0B4\uC544 \uC2E0\uB839\uD55C \uAE30\uC6B4\uC744 \uC5BB\uC740 \uAC70\uBD81."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 693841801597311709, guid: 8519f16d83e9281458176170b8941ad3, type: 3}
   rarity: 2
   stats:
     attackPower: 50
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.5
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

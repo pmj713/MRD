@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Gorilla
-  m_EditorClassIdentifier:
-  characterName: 고릴라
-  flavorText: 압도적인 힘을 자랑하는 거대한 유인원.
+  m_EditorClassIdentifier: 
+  characterName: "\uACE0\uB9B4\uB77C"
+  flavorText: "\uC555\uB3C4\uC801\uC778 \uD798\uC744 \uC790\uB791\uD558\uB294 \uAC70\uB300\uD55C \uC720\uC778\uC6D0."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 154009852022234199, guid: 3ad137d25d699734ca1be62f82978dd9, type: 3}
   rarity: 2
   stats:
     attackPower: 50
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.5
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

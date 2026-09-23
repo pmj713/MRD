@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: BabySnake
-  m_EditorClassIdentifier:
-  characterName: 아기뱀
-  flavorText: 아직 작고 여린 뱀이지만 눈빛만은 매섭다.
+  m_EditorClassIdentifier: 
+  characterName: "\uC544\uAE30\uBC40"
+  flavorText: "\uC544\uC9C1 \uC791\uACE0 \uC5EC\uB9B0 \uBC40\uC774\uC9C0\uB9CC \uB208\uBE5B\uB9CC\uC740 \uB9E4\uC12D\uB2E4."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 5686093320799108049, guid: e2547d269caa8464bbafb1c50a577c08, type: 3}
   rarity: 0
   stats:
     attackPower: 15
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.3
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

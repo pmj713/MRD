@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Squirrel
-  m_EditorClassIdentifier:
-  characterName: 다람쥐
-  flavorText: 도토리를 모으느라 여념이 없는 다람쥐.
+  m_EditorClassIdentifier: 
+  characterName: "\uB2E4\uB78C\uC950"
+  flavorText: "\uB3C4\uD1A0\uB9AC\uB97C \uBAA8\uC73C\uB290\uB77C \uC5EC\uB150\uC774 \uC5C6\uB294 \uB2E4\uB78C\uC950."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 2215780352542951836, guid: 1e4c6a903e6f123438197e9eb85b6a96, type: 3}
   rarity: 0
   stats:
     attackPower: 15
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.3
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

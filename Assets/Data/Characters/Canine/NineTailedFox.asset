@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: NineTailedFox
-  m_EditorClassIdentifier:
-  characterName: 구미호
-  flavorText: 아홉 개의 꼬리를 가진 천년 묵은 여우. 사람을 홀리는 신비로운 힘을 지녔다.
+  m_EditorClassIdentifier: 
+  characterName: "\uAD6C\uBBF8\uD638"
+  flavorText: "\uC544\uD649 \uAC1C\uC758 \uAF2C\uB9AC\uB97C \uAC00\uC9C4 \uCC9C\uB144 \uBB35\uC740 \uC5EC\uC6B0. \uC0AC\uB78C\uC744 \uD640\uB9AC\uB294 \uC2E0\uBE44\uB85C\uC6B4 \uD798\uC744 \uC9C0\uB154\uB2E4."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 2348310029872366990, guid: d1c9fc6417b5b5b4e80bc54e2b9091bc, type: 3}
   rarity: 4
   stats:
     attackPower: 100
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.8
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

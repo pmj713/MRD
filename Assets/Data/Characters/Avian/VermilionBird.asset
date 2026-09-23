@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: VermilionBird
-  m_EditorClassIdentifier:
-  characterName: 주작
-  flavorText: 남쪽을 수호하는 사방신. 붉은 불꽃의 날개로 하늘을 가른다.
+  m_EditorClassIdentifier: 
+  characterName: "\uC8FC\uC791"
+  flavorText: "\uB0A8\uCABD\uC744 \uC218\uD638\uD558\uB294 \uC0AC\uBC29\uC2E0. \uBD89\uC740 \uBD88\uAF43\uC758 \uB0A0\uAC1C\uB85C \uD558\uB298\uC744 \uAC00\uB978\uB2E4."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 1637574555899223751, guid: eab292138e2939b4fa11b0c5dc041487, type: 3}
   rarity: 5
   stats:
     attackPower: 150
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 2
     attackRange: 13
   activeSkill:
-    skillName: 불사조의 불꽃
-    description: 넓은 범위에 불사조의 화염을 쏟아부어 큰 피해를 입힌다.
+    skillName: "\uBD88\uC0AC\uC870\uC758 \uBD88\uAF43"
+    description: "\uB113\uC740 \uBC94\uC704\uC5D0 \uBD88\uC0AC\uC870\uC758 \uD654\uC5FC\uC744 \uC3DF\uC544\uBD80\uC5B4 \uD070 \uD53C\uD574\uB97C \uC785\uD78C\uB2E4."
     skillType: 0
     manaCost: 200
     cooldown: 30
     triggerChancePercent: 0
   passiveSkill:
-    skillName: 재생의 깃털
-    description: 평타 적중 시 일정 확률로 스스로를 치유하는 깃털을 흩뿌린다.
+    skillName: "\uC7AC\uC0DD\uC758 \uAE43\uD138"
+    description: "\uD3C9\uD0C0 \uC801\uC911 \uC2DC \uC77C\uC815 \uD655\uB960\uB85C \uC2A4\uC2A4\uB85C\uB97C \uCE58\uC720\uD558\uB294 \uAE43\uD138\uC744 \uD769\uBFCC\uB9B0\uB2E4."
     skillType: 2
     manaCost: 0
     cooldown: 0

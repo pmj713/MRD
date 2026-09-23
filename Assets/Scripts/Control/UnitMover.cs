@@ -23,10 +23,20 @@ namespace MRD.Control
             if (!_destination.HasValue) return;
 
             var next = Vector3.MoveTowards(transform.position, _destination.Value, moveSpeed * deltaTime);
+            FaceDirection(next - transform.position);
             transform.position = next;
 
             if ((next - _destination.Value).sqrMagnitude < 0.0001f)
                 _destination = null;
+        }
+
+        // 이동 방향(바닥 기준, Y 성분 제외)을 바라보게 회전시킨다. 제자리에 멈춰있을 땐 방향이 없으니 그대로 둔다.
+        private void FaceDirection(Vector3 direction)
+        {
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.0001f) return;
+
+            transform.rotation = Quaternion.LookRotation(direction);
         }
     }
 }

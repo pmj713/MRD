@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Qiongqi
-  m_EditorClassIdentifier:
-  characterName: 궁기
-  flavorText: 날개 달린 흉수. 정의로운 이를 해치는 것을 즐긴다.
+  m_EditorClassIdentifier: 
+  characterName: "\uAD81\uAE30"
+  flavorText: "\uB0A0\uAC1C \uB2EC\uB9B0 \uD749\uC218. \uC815\uC758\uB85C\uC6B4 \uC774\uB97C \uD574\uCE58\uB294 \uAC83\uC744 \uC990\uAE34\uB2E4."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 5410744676779982594, guid: ad909507e138d6541b6de957eed1bc75, type: 3}
   rarity: 4
   stats:
     attackPower: 100
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.8
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

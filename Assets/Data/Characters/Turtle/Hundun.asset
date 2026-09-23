@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Hundun
-  m_EditorClassIdentifier:
-  characterName: 혼돈
-  flavorText: 형체가 뚜렷하지 않은 태초의 흉수. 그 속을 알 수 없다.
+  m_EditorClassIdentifier: 
+  characterName: "\uD63C\uB3C8"
+  flavorText: "\uD615\uCCB4\uAC00 \uB69C\uB837\uD558\uC9C0 \uC54A\uC740 \uD0DC\uCD08\uC758 \uD749\uC218. \uADF8 \uC18D\uC744 \uC54C \uC218 \uC5C6\uB2E4."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 7012647738562607281, guid: ed7497f127075824794fc9e95d21ecc6, type: 3}
   rarity: 4
   stats:
     attackPower: 100
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.8
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

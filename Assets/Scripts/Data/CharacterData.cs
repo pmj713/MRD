@@ -17,6 +17,10 @@ namespace MRD.Data
 
         public Sprite portrait;
 
+        [Header("모델")]
+        [Tooltip("비워두면 임시 큐브로 대체 표시된다.")]
+        public GameObject visualPrefab;
+
         [Header("분류")]
         public Rarity rarity;
 

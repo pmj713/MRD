@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Hawk
-  m_EditorClassIdentifier:
-  characterName: 매
-  flavorText: 날카로운 눈으로 먹잇감을 포착하는 맹금류.
+  m_EditorClassIdentifier: 
+  characterName: "\uB9E4"
+  flavorText: "\uB0A0\uCE74\uB85C\uC6B4 \uB208\uC73C\uB85C \uBA39\uC787\uAC10\uC744 \uD3EC\uCC29\uD558\uB294 \uB9F9\uAE08\uB958."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 6564352152337127033, guid: 0c4cc1041d4a1744b8ba663f0e3b94c5, type: 3}
   rarity: 1
   stats:
     attackPower: 28
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.4
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

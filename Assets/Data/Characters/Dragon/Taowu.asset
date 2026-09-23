@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Taowu
-  m_EditorClassIdentifier:
-  characterName: 도올
-  flavorText: 사나운 짐승의 모습을 한 흉수. 오만하고 흉포하다.
+  m_EditorClassIdentifier: 
+  characterName: "\uB3C4\uC62C"
+  flavorText: "\uC0AC\uB098\uC6B4 \uC9D0\uC2B9\uC758 \uBAA8\uC2B5\uC744 \uD55C \uD749\uC218. \uC624\uB9CC\uD558\uACE0 \uD749\uD3EC\uD558\uB2E4."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 4653680409729610422, guid: 017001e71fab9b34dbd8c8dcefc6fac6, type: 3}
   rarity: 4
   stats:
     attackPower: 100
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.8
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

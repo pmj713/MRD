@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Boa
-  m_EditorClassIdentifier:
-  characterName: 구렁이
-  flavorText: 굵고 힘센 몸으로 먹잇감을 휘감는 큰 뱀.
+  m_EditorClassIdentifier: 
+  characterName: "\uAD6C\uB801\uC774"
+  flavorText: "\uAD75\uACE0 \uD798\uC13C \uBAB8\uC73C\uB85C \uBA39\uC787\uAC10\uC744 \uD718\uAC10\uB294 \uD070 \uBC40."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 7985958134981348241, guid: 22d46844640c9f549aed8a100dbe2b73, type: 3}
   rarity: 1
   stats:
     attackPower: 28
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.4
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

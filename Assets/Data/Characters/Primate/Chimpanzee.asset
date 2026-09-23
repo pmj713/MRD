@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Chimpanzee
-  m_EditorClassIdentifier:
-  characterName: 침팬지
-  flavorText: 도구를 사용할 줄 아는 영리한 유인원.
+  m_EditorClassIdentifier: 
+  characterName: "\uCE68\uD32C\uC9C0"
+  flavorText: "\uB3C4\uAD6C\uB97C \uC0AC\uC6A9\uD560 \uC904 \uC544\uB294 \uC601\uB9AC\uD55C \uC720\uC778\uC6D0."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 4736886168255293400, guid: be5e502c20d007a4ca12af2af01bd8e9, type: 3}
   rarity: 1
   stats:
     attackPower: 28
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.4
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

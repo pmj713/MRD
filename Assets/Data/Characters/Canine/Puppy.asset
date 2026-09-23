@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Puppy
-  m_EditorClassIdentifier:
-  characterName: 강아지
-  flavorText: 이제 막 세상을 알아가는 강아지. 짖는 소리만은 우렁차다.
+  m_EditorClassIdentifier: 
+  characterName: "\uAC15\uC544\uC9C0"
+  flavorText: "\uC774\uC81C \uB9C9 \uC138\uC0C1\uC744 \uC54C\uC544\uAC00\uB294 \uAC15\uC544\uC9C0. \uC9D6\uB294 \uC18C\uB9AC\uB9CC\uC740 \uC6B0\uB801\uCC28\uB2E4."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 2230804388897843117, guid: e519cc4c2370e8149864078d54464046, type: 3}
   rarity: 0
   stats:
     attackPower: 15
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.3
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

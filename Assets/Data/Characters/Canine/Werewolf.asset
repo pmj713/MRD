@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Werewolf
-  m_EditorClassIdentifier:
-  characterName: 웨어울프
-  flavorText: 보름달이 뜨면 인간의 이성을 잃고 짐승으로 변하는 저주받은 존재.
+  m_EditorClassIdentifier: 
+  characterName: "\uC6E8\uC5B4\uC6B8\uD504"
+  flavorText: "\uBCF4\uB984\uB2EC\uC774 \uB728\uBA74 \uC778\uAC04\uC758 \uC774\uC131\uC744 \uC783\uACE0 \uC9D0\uC2B9\uC73C\uB85C \uBCC0\uD558\uB294 \uC800\uC8FC\uBC1B\uC740 \uC874\uC7AC."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 448134073169528430, guid: b19211222d1c3074d96ff7d1d639f43e, type: 3}
   rarity: 3
   stats:
     attackPower: 85
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.6
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

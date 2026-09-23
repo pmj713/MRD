@@ -149,7 +149,7 @@ namespace MRD.Game
             // 가장 가까운 빈 슬롯을 찾아주므로 여기서는 그대로 배율만 곱해서 좌표를 옮기면 된다.
             var pos = new Vector3(patrolCenterX + x * gridCellSize, 0f, patrolCenterZ + y * gridCellSize);
             unit.transform.position = pos;
-            var renderer = UnitVisual.AttachCube(unit.transform, new Color(0.3f, 0.5f, 1f), 0.9f);
+            var renderer = UnitVisual.AttachVisual(unit.transform, unit.Source.visualPrefab, new Color(0.3f, 0.5f, 1f), 0.9f);
 
             unit.gameObject.AddComponent<UnitMover>();
             var selectable = unit.gameObject.AddComponent<Selectable>();

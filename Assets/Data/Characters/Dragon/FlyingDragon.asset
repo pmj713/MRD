@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: FlyingDragon
-  m_EditorClassIdentifier:
-  characterName: 비룡
-  flavorText: 마침내 날개를 얻고 하늘로 승천하기 시작한 용.
+  m_EditorClassIdentifier: 
+  characterName: "\uBE44\uB8E1"
+  flavorText: "\uB9C8\uCE68\uB0B4 \uB0A0\uAC1C\uB97C \uC5BB\uACE0 \uD558\uB298\uB85C \uC2B9\uCC9C\uD558\uAE30 \uC2DC\uC791\uD55C \uC6A9."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 5670209413867775870, guid: 80e7ce64c19d42f4cb7de71cfdc80dc2, type: 3}
   rarity: 3
   stats:
     attackPower: 85
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.6
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

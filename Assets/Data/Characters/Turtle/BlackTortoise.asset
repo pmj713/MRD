@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: BlackTortoise
-  m_EditorClassIdentifier:
-  characterName: 현무
-  flavorText: 북쪽을 수호하는 사방신. 뱀을 휘감은 거대한 거북의 모습을 하고 있다.
+  m_EditorClassIdentifier: 
+  characterName: "\uD604\uBB34"
+  flavorText: "\uBD81\uCABD\uC744 \uC218\uD638\uD558\uB294 \uC0AC\uBC29\uC2E0. \uBC40\uC744 \uD718\uAC10\uC740 \uAC70\uB300\uD55C \uAC70\uBD81\uC758 \uBAA8\uC2B5\uC744 \uD558\uACE0 \uC788\uB2E4."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 1644302903926137797, guid: a4810e59badcea449bb6c97ece819615, type: 3}
   rarity: 5
   stats:
     attackPower: 150
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 2
     attackRange: 13
   activeSkill:
-    skillName: 대지의 방벽
-    description: 주변에 단단한 등껍질의 기운을 둘러 아군을 보호하고 대상에게 피해를 입힌다.
+    skillName: "\uB300\uC9C0\uC758 \uBC29\uBCBD"
+    description: "\uC8FC\uBCC0\uC5D0 \uB2E8\uB2E8\uD55C \uB4F1\uAECD\uC9C8\uC758 \uAE30\uC6B4\uC744 \uB458\uB7EC \uC544\uAD70\uC744 \uBCF4\uD638\uD558\uACE0 \uB300\uC0C1\uC5D0\uAC8C \uD53C\uD574\uB97C \uC785\uD78C\uB2E4."
     skillType: 0
     manaCost: 200
     cooldown: 30
     triggerChancePercent: 0
   passiveSkill:
-    skillName: 불굴의 등껍질
-    description: 평타 적중 시 일정 확률로 상대의 방어력을 무너뜨리는 추가 타격을 가한다.
+    skillName: "\uBD88\uAD74\uC758 \uB4F1\uAECD\uC9C8"
+    description: "\uD3C9\uD0C0 \uC801\uC911 \uC2DC \uC77C\uC815 \uD655\uB960\uB85C \uC0C1\uB300\uC758 \uBC29\uC5B4\uB825\uC744 \uBB34\uB108\uB728\uB9AC\uB294 \uCD94\uAC00 \uD0C0\uACA9\uC744 \uAC00\uD55C\uB2E4."
     skillType: 2
     manaCost: 0
     cooldown: 0

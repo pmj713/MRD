@@ -34,7 +34,18 @@ namespace MRD.Game
             if (_perimeter > 0f)
                 _distanceTraveled %= _perimeter;
 
-            transform.position = GetPointAtDistance(_distanceTraveled);
+            var next = GetPointAtDistance(_distanceTraveled);
+            FaceDirection(next - transform.position);
+            transform.position = next;
+        }
+
+        // 이동 방향(바닥 기준, Y 성분 제외)을 바라보게 회전시킨다.
+        private void FaceDirection(Vector3 direction)
+        {
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 0.0001f) return;
+
+            transform.rotation = Quaternion.LookRotation(direction);
         }
 
         private Vector3 GetPointAtDistance(float distance)

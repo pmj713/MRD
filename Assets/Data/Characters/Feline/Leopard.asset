@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Leopard
-  m_EditorClassIdentifier:
-  characterName: 표범
-  flavorText: 빠른 속도와 은밀함을 자랑하는 맹수.
+  m_EditorClassIdentifier: 
+  characterName: "\uD45C\uBC94"
+  flavorText: "\uBE60\uB978 \uC18D\uB3C4\uC640 \uC740\uBC00\uD568\uC744 \uC790\uB791\uD558\uB294 \uB9F9\uC218."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 118428609964927487, guid: 7761061779d580f4c910cf4b5dc31d5a, type: 3}
   rarity: 2
   stats:
     attackPower: 50
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.5
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

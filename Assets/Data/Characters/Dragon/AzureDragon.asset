@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: AzureDragon
-  m_EditorClassIdentifier:
-  characterName: 청룡
-  flavorText: 동쪽을 수호하는 사방신. 폭풍을 몰고 다니는 푸른 용.
+  m_EditorClassIdentifier: 
+  characterName: "\uCCAD\uB8E1"
+  flavorText: "\uB3D9\uCABD\uC744 \uC218\uD638\uD558\uB294 \uC0AC\uBC29\uC2E0. \uD3ED\uD48D\uC744 \uBAB0\uACE0 \uB2E4\uB2C8\uB294 \uD478\uB978 \uC6A9."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 220415984392387135, guid: b4f87f3df031b324badb49e727b33912, type: 3}
   rarity: 5
   stats:
     attackPower: 150
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 2
     attackRange: 13
   activeSkill:
-    skillName: 폭풍 브레스
-    description: 전방 직선 범위에 강력한 뇌전의 숨결을 내뿜는다.
+    skillName: "\uD3ED\uD48D \uBE0C\uB808\uC2A4"
+    description: "\uC804\uBC29 \uC9C1\uC120 \uBC94\uC704\uC5D0 \uAC15\uB825\uD55C \uB1CC\uC804\uC758 \uC228\uACB0\uC744 \uB0B4\uBFDC\uB294\uB2E4."
     skillType: 0
     manaCost: 200
     cooldown: 30
     triggerChancePercent: 0
   passiveSkill:
-    skillName: 용의 가호
-    description: 평타 적중 시 일정 확률로 방어력을 무시하는 번개 추가 타격을 가한다.
+    skillName: "\uC6A9\uC758 \uAC00\uD638"
+    description: "\uD3C9\uD0C0 \uC801\uC911 \uC2DC \uC77C\uC815 \uD655\uB960\uB85C \uBC29\uC5B4\uB825\uC744 \uBB34\uC2DC\uD558\uB294 \uBC88\uAC1C \uCD94\uAC00 \uD0C0\uACA9\uC744 \uAC00\uD55C\uB2E4."
     skillType: 2
     manaCost: 0
     cooldown: 0

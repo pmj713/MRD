@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Pegasus
-  m_EditorClassIdentifier:
-  characterName: 페가수스
-  flavorText: 등에 날개가 돋아난 신비한 천마.
+  m_EditorClassIdentifier: 
+  characterName: "\uD398\uAC00\uC218\uC2A4"
+  flavorText: "\uB4F1\uC5D0 \uB0A0\uAC1C\uAC00 \uB3CB\uC544\uB09C \uC2E0\uBE44\uD55C \uCC9C\uB9C8."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 5598235359729564530, guid: 5c411536dabafcf40986d1f4234134aa, type: 3}
   rarity: 2
   stats:
     attackPower: 50
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.5
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

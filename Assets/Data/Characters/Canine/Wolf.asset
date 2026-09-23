@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Wolf
-  m_EditorClassIdentifier:
-  characterName: 늑대
-  flavorText: 무리를 지어 사냥하는 야생 늑대.
+  m_EditorClassIdentifier: 
+  characterName: "\uB291\uB300"
+  flavorText: "\uBB34\uB9AC\uB97C \uC9C0\uC5B4 \uC0AC\uB0E5\uD558\uB294 \uC57C\uC0DD \uB291\uB300."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 7246854917368484095, guid: 49f023217623fd74db962b80cd8f14e4, type: 3}
   rarity: 1
   stats:
     attackPower: 28
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.4
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0

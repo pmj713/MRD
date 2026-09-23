@@ -11,10 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
   m_Name: Foal
-  m_EditorClassIdentifier:
-  characterName: 망아지
-  flavorText: 아직 다리가 후들거리는 어린 망아지.
+  m_EditorClassIdentifier: 
+  characterName: "\uB9DD\uC544\uC9C0"
+  flavorText: "\uC544\uC9C1 \uB2E4\uB9AC\uAC00 \uD6C4\uB4E4\uAC70\uB9AC\uB294 \uC5B4\uB9B0 \uB9DD\uC544\uC9C0."
   portrait: {fileID: 0}
+  visualPrefab: {fileID: 4689074201476533931, guid: da94adccb0d09af4bbcb98de260aadcd, type: 3}
   rarity: 0
   stats:
     attackPower: 15
@@ -22,15 +23,15 @@ MonoBehaviour:
     criticalMultiplier: 1.3
     attackRange: 13
   activeSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 0
     manaCost: 0
     cooldown: 0
     triggerChancePercent: 0
   passiveSkill:
-    skillName:
-    description:
+    skillName: 
+    description: 
     skillType: 1
     manaCost: 0
     cooldown: 0
