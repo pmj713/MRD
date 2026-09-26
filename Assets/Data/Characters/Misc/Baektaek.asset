@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb5bb376e294495b87b39a1c241f124, type: 3}
+  m_Name: Baektaek
+  m_EditorClassIdentifier: Assembly-CSharp::MRD.Data.CharacterData
+  characterName: "\uBC31\uD0DD"
+  flavorText: "\uC138\uC0C1 \uBAA8\uB4E0 \uC0AC\uBB3C\uACFC \uC815\uB839\uC758 \uC774\uCE58\uB97C \uC548\uB2E4\uB294 \uC804\uC124 \uC18D \uD770 \uC2E0\uC218. \uD574\uD0DC\uB4E4\uC758 \uC9C0\uD61C\uAC00 \uADF9\uC5D0 \uB2EC\uD574 \uB9C8\uCE68\uB0B4 \uB9CC\uBB3C\uC744 \uD1B5\uB2EC\uD55C \uC874\uC7AC\uB85C \uC2B9\uD654\uD588\uB2E4."
+  portrait: {fileID: 0}
+  visualPrefab: {fileID: 0}
+  rarity: 3
+  stats:
+    attackPower: 85
+    attackSpeed: 1.15
+    criticalMultiplier: 1.6
+    attackRange: 2.5
+    isAreaAttack: 0
+  activeSkill:
+    skillName: 
+    description: 
+    skillType: 0
+    cooldown: 0
+    activeEffectType: 0
+    activeEffectValue: 0
+    triggerChancePercent: 0
+    triggerEffectType: 0
+    triggerEffectValue: 0
+  passiveSkill:
+    skillName: 
+    description: 
+    skillType: 0
+    cooldown: 0
+    activeEffectType: 0
+    activeEffectValue: 0
+    triggerChancePercent: 0
+    triggerEffectType: 0
+    triggerEffectValue: 0
+  fusionRecipe:
+    requiredCharacters:
+    - {fileID: 11400000, guid: 285f973dd252d41428f448b2553645d3, type: 2}
+    - {fileID: 11400000, guid: 285f973dd252d41428f448b2553645d3, type: 2}
+    - {fileID: 11400000, guid: 285f973dd252d41428f448b2553645d3, type: 2}
+    goldCost: 200
+    gemCost: 0

@@ -18,28 +18,35 @@ MonoBehaviour:
   visualPrefab: {fileID: 4653680409729610422, guid: 017001e71fab9b34dbd8c8dcefc6fac6, type: 3}
   rarity: 4
   stats:
-    attackPower: 100
+    attackPower: 220
     attackSpeed: 1.2
     criticalMultiplier: 1.8
-    attackRange: 13
+    attackRange: 3
+    isAreaAttack: 0
   activeSkill:
     skillName: 
     description: 
     skillType: 0
-    manaCost: 0
     cooldown: 0
+    activeEffectType: 0
+    activeEffectValue: 0
     triggerChancePercent: 0
+    triggerEffectType: 0
+    triggerEffectValue: 0
   passiveSkill:
-    skillName: 
-    description: 
+    skillName: "\uC77C\uACA9\uD544\uC0B4"
+    description: "\uD55C \uBC88\uC5D0 \uD55C \uB300\uC0C1\uC5D0\uAC8C\uB9CC \uB2FF\uC9C0\uB9CC, \uADF8\uB9CC\uD07C \uC555\uB3C4\uC801\uC73C\uB85C \uAC15\uD55C \uC77C\uACA9\uC744 \uAF42\uB294\uB2E4. \uC624\uB798 \uBC84\uD2F0\uB294 \uAC15\uB825\uD55C \uB2E8\uC77C \uB300\uC0C1(\uB808\uC774\uB4DC \uBCF4\uC2A4 \uB4F1)\uC744 \uC0C1\uB300\uD560 \uB54C \uC704\uB825\uC744 \uBC1C\uD718\uD55C\uB2E4."
     skillType: 1
-    manaCost: 0
     cooldown: 0
+    activeEffectType: 0
+    activeEffectValue: 0
     triggerChancePercent: 0
+    triggerEffectType: 0
+    triggerEffectValue: 0
   fusionRecipe:
     requiredCharacters:
     - {fileID: 11400000, guid: 7ad14c47fa6187c409d1eed36c61f416, type: 2}
     - {fileID: 11400000, guid: 7ad14c47fa6187c409d1eed36c61f416, type: 2}
-    - {fileID: 11400000, guid: 7ad14c47fa6187c409d1eed36c61f416, type: 2}
+    - {fileID: 11400000, guid: fd04a772ddc05c24f9ab0719baf4709e, type: 2}
     goldCost: 0
     gemCost: 100

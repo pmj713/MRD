@@ -6,7 +6,7 @@ namespace MRD.Battle
 {
     /// <summary>
     /// 아군 BattleUnit을 등록해두고, OnAttack 이벤트를 받아 실제 평타 판정
-    /// (데미지, 치명타, 마나 획득, 확률형 패시브 발동)을 처리한다.
+    /// (데미지, 치명타, 확률형 패시브 발동)을 처리한다.
     /// 공격 대상은 IDamageable로만 다루기 때문에 CombatManager가 MRD.Wave에 직접 의존하지 않는다.
     /// WaveSpawner가 스폰한 EnemyUnit을 RegisterEnemyTarget으로 등록해주면 실제 웨이브 몬스터를 공격하게 된다.
     /// 타겟팅은 attacker의 attackRange(사거리) 안에 있는 대상 중 가장 먼저 등장한(=가장 오래 살아있는) 쪽을 고른다.
@@ -14,7 +14,6 @@ namespace MRD.Battle
     public class CombatManager : MonoBehaviour
     {
         [SerializeField] private float baseCritChancePercent = 10f;
-        [SerializeField] private float manaPerHit = 10f;
 
         private readonly List<BattleUnit> _allies = new List<BattleUnit>();
         private readonly List<IDamageable> _enemyTargets = new List<IDamageable>();
@@ -23,12 +22,14 @@ namespace MRD.Battle
         {
             _allies.Add(unit);
             unit.OnAttack += ProcessAttack;
+            unit.OnActiveSkillCast += ProcessActiveSkill;
         }
 
         public void UnregisterAlly(BattleUnit unit)
         {
             _allies.Remove(unit);
             unit.OnAttack -= ProcessAttack;
+            unit.OnActiveSkillCast -= ProcessActiveSkill;
         }
 
         public void RegisterEnemyTarget(IDamageable target) => _enemyTargets.Add(target);
@@ -37,31 +38,85 @@ namespace MRD.Battle
 
         /// <summary>
         /// attacker의 평타 한 번을 판정한다. BattleUnit.OnAttack에 자동으로 연결되며,
-        /// 테스트나 다른 시스템에서 직접 호출해도 된다.
+        /// 테스트나 다른 시스템에서 직접 호출해도 된다. isAreaAttack이면 사거리 안의 모든 대상을,
+        /// 아니면 사거리 안에서 가장 오래 살아있는 대상 하나만 때린다.
         /// </summary>
         public void ProcessAttack(BattleUnit attacker)
         {
-            var target = FindTarget(attacker);
-            if (target == null) return;
-
             var stats = attacker.EffectiveStats;
             bool isCrit = Random.Range(0f, 100f) < baseCritChancePercent;
-            float critMultiplier = isCrit ? Mathf.Max(1f, stats.criticalMultiplier) : 1f;
+            float damage = stats.attackPower * (isCrit ? Mathf.Max(1f, stats.criticalMultiplier) : 1f);
 
-            target.TakePhysicalDamage(stats.attackPower * critMultiplier);
+            if (stats.isAreaAttack)
+            {
+                var targets = FindAllTargetsInRange(attacker);
+                if (targets.Count == 0) return;
 
-            attacker.AddMana(manaPerHit);
+                foreach (var target in targets)
+                    ApplyHit(attacker, target, damage);
+            }
+            else
+            {
+                var target = FindTarget(attacker);
+                if (target == null) return;
+
+                ApplyHit(attacker, target, damage);
+            }
+        }
+
+        private static void ApplyHit(BattleUnit attacker, IDamageable target, float damage)
+        {
+            target.TakePhysicalDamage(damage);
             TryRollTriggerSkill(attacker, target);
         }
 
-        // 트리거 패시브(평타 시 % 확률 발동)는 방어력을 무시하는 추가 타격으로 통일 처리한다.
+        /// <summary>
+        /// 액티브 스킬이 자동 발동했을 때(BattleUnit.OnActiveSkillCast) 사거리 안의 모든 대상에게
+        /// activeEffectType에 따른 효과를 적용한다. 이름이 비어있는 플레이스홀더 스킬은
+        /// 애초에 BattleUnit.TryUseActiveSkill에서 걸러지므로 여기까지 오지 않는다.
+        /// </summary>
+        private void ProcessActiveSkill(BattleUnit attacker)
+        {
+            var skill = attacker.Source.activeSkill;
+            if (skill == null) return;
+
+            var targets = FindAllTargetsInRange(attacker);
+            foreach (var target in targets)
+            {
+                switch (skill.activeEffectType)
+                {
+                    case TriggerEffectType.ArmorShred:
+                        target.ReduceArmor(skill.activeEffectValue);
+                        break;
+                    case TriggerEffectType.Stun:
+                        target.ApplyStun(skill.activeEffectValue);
+                        break;
+                    default:
+                        target.TakeTrueDamage(attacker.EffectiveStats.attackPower * skill.activeEffectValue);
+                        break;
+                }
+            }
+        }
+
+        // 트리거 패시브(평타 시 % 확률 발동)는 스킬 데이터의 triggerEffectType에 따라 다른 효과를 낸다.
         private static void TryRollTriggerSkill(BattleUnit attacker, IDamageable target)
         {
             var skill = attacker.Source.passiveSkill;
             if (skill == null || skill.skillType != SkillType.Trigger) return;
             if (Random.Range(0f, 100f) >= skill.triggerChancePercent) return;
 
-            target.TakeTrueDamage(attacker.EffectiveStats.attackPower * 0.5f);
+            switch (skill.triggerEffectType)
+            {
+                case TriggerEffectType.ArmorShred:
+                    target.ReduceArmor(skill.triggerEffectValue);
+                    break;
+                case TriggerEffectType.Stun:
+                    target.ApplyStun(skill.triggerEffectValue);
+                    break;
+                default:
+                    target.TakeTrueDamage(attacker.EffectiveStats.attackPower * 0.5f);
+                    break;
+            }
         }
 
         // 사거리(attacker의 EffectiveStats.attackRange) 안에 있는 대상 중 SpawnOrder가 가장 작은(=가장
@@ -91,6 +146,27 @@ namespace MRD.Battle
             }
 
             return oldest;
+        }
+
+        // 광역 공격 유닛용: 사거리 안에 있는 대상을 전부 모은다 (FindTarget과 같은 사거리 판정 규칙 재사용).
+        private List<IDamageable> FindAllTargetsInRange(BattleUnit attacker)
+        {
+            float range = attacker.EffectiveStats.attackRange;
+            bool unlimitedRange = range <= 0f;
+            float rangeSqr = range * range;
+
+            var result = new List<IDamageable>();
+            foreach (var candidate in _enemyTargets)
+            {
+                if (candidate == null || !candidate.IsTargetable) continue;
+
+                float sqrDistance = (candidate.Position - attacker.Position).sqrMagnitude;
+                if (!unlimitedRange && sqrDistance > rangeSqr) continue;
+
+                result.Add(candidate);
+            }
+
+            return result;
         }
     }
 }

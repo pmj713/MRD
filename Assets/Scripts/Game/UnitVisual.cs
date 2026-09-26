@@ -16,6 +16,8 @@ namespace MRD.Game
 
             var go = GameObject.Instantiate(visualPrefab, parent, false);
             go.name = "Visual";
+            // 모델 원본 크기가 제각각이라, 몬스터 큐브와 크기가 비슷해 보이도록 같은 배율을 곱해준다.
+            go.transform.localScale *= fallbackSize;
             return go.GetComponentInChildren<Renderer>();
         }
 

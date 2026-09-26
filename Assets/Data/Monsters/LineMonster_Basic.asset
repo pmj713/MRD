@@ -16,6 +16,6 @@ MonoBehaviour:
   baseHealth: 100
   baseArmor: 0
   healthGrowthPerRound: 1.05
-  moveSpeed: 1
+  moveSpeed: 2
   goldReward: 5
   isBoss: 0

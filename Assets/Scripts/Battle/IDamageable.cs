@@ -20,5 +20,11 @@ namespace MRD.Battle
 
         void TakePhysicalDamage(float rawDamage);
         void TakeTrueDamage(float rawDamage);
+
+        /// <summary>방어력을 amount만큼 깎는다 (누적된다 - 여러 번 맞을수록 계속 낮아진다).</summary>
+        void ReduceArmor(float amount);
+
+        /// <summary>duration초 동안 이동을 멈춘다. 이미 스턴 중이면 더 긴 쪽으로 갱신한다(중첩 누적 아님).</summary>
+        void ApplyStun(float duration);
     }
 }

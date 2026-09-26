@@ -6,6 +6,7 @@ using MRD.Wave;
 using MRD.Control;
 using MRD.Gacha;
 using MRD.UI;
+using MRD.Building;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -32,7 +33,6 @@ namespace MRD.Game
         [SerializeField] private GachaTable gemBasicSummonTable;
         [SerializeField] private GachaTable gemMidSummonTable;
         [SerializeField] private GachaTable gemAdvancedSummonTable;
-        [SerializeField] private CharacterData fusionTestTarget;
 
         [Header("배치 격자 (몬스터 순찰 경로 한가운데에 놓인다 - 몬스터가 격자를 둘러싸고 돈다)")]
         [SerializeField] private int gridWidth = 10;
@@ -44,6 +44,9 @@ namespace MRD.Game
         [SerializeField] private float patrolHalfDepth = 12f;
         [SerializeField] private float patrolCenterX = 0f;
         [SerializeField] private float patrolCenterZ = 3f;
+
+        // 보스 레이드 장소를 웨이브 지역에서 X축으로 얼마나 멀리 떨어뜨릴지 (SetupRaid, 미니맵 범위 계산에서 함께 사용).
+        private const float RaidOffsetX = 200f;
 
         private GameManager _game;
 
@@ -57,6 +60,8 @@ namespace MRD.Game
             var selectionController = gameObject.AddComponent<SelectionController>();
             gameObject.AddComponent<CameraEdgePan>();
             gameObject.AddComponent<CameraZoom>();
+            // 레이드 장소(웨이브 지역에서 +RaidOffsetX만큼 떨어진 곳, 같은 크기)까지 한 화면에 다 들어오도록 범위를 잡는다.
+            gameObject.AddComponent<MinimapUI>().Initialize(Camera.main, patrolCenterX, patrolCenterZ, patrolHalfWidth, patrolHalfDepth, RaidOffsetX);
 
             var gameGo = new GameObject("GameManager");
             _game = gameGo.AddComponent<GameManager>();
@@ -70,15 +75,16 @@ namespace MRD.Game
             _game.OnGameEnded += (victory, reason) => Debug.Log(victory ? $"[MRD] 승리! {reason}" : $"[MRD] 패배: {reason}");
 
             gameObject.AddComponent<GameHud>().Initialize(_game, selectionController, characterDatabase, goldSummonTable,
-                gemBasicSummonTable, gemMidSummonTable, gemAdvancedSummonTable, fusionTestTarget);
+                gemBasicSummonTable, gemMidSummonTable, gemAdvancedSummonTable);
             gameObject.AddComponent<FusionBookUI>().Initialize(characterDatabase);
 
+            SetupUpgradeBuilding();
             PlaceStarterRoster();
             SetupRaid();
 
             _game.StartGame();
             _game.GrantGold(500); // 소환/조합 버튼을 바로 눌러볼 수 있도록 지급하는 테스트용 시작 재화
-            _game.GrantGems(350); // 제우스 조합(보석 300)까지 바로 시도해볼 수 있는 넉넉한 값
+            _game.GrantGems(350); // 고급 조합까지 바로 시도해볼 수 있는 넉넉한 값
             Debug.Log("[MRD] 게임 시작");
         }
 
@@ -94,12 +100,39 @@ namespace MRD.Game
             }
         }
 
+        // 등급별로 강화 가능한 건물: 몬스터 순찰 경로 왼쪽 바깥에 큐브로 세워두고, 클릭하면
+        // 노말~히든 등급 전부를 한 번에 보여주는 강화 패널이 뜬다 (한 등급당 최대 Building.MaxUpgradeLevel번).
+        private void SetupUpgradeBuilding()
+        {
+            const float size = 2f;
+            const float margin = 3f; // 순찰 경로 테두리(노란 큐브)와 겹치지 않도록 띄우는 여백
+            float x = patrolCenterX - patrolHalfWidth - margin;
+            var basePos = new Vector3(x, 0f, patrolCenterZ);
+
+            var buildingGo = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            buildingGo.name = "UpgradeBuilding";
+            buildingGo.transform.position = basePos + new Vector3(0f, size / 2f, 0f);
+            buildingGo.transform.localScale = new Vector3(size, size, size);
+
+            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+            buildingGo.GetComponent<Renderer>().material = new Material(shader) { color = new Color(0.9f, 0.7f, 0.1f) };
+
+            var building = buildingGo.AddComponent<MRD.Building.Building>();
+
+            var upgradeUiGo = new GameObject("BuildingUpgradeUI");
+            var upgradeUi = upgradeUiGo.AddComponent<BuildingUpgradeUI>();
+            upgradeUi.Initialize(_game);
+
+            var clickTarget = buildingGo.AddComponent<BuildingClickTarget>();
+            clickTarget.OnClicked += () => upgradeUi.Show(building);
+        }
+
         // 보스 레이드: 순찰 경로 안쪽 한 구석에 입구 포탈을 두고, 웨이브 지역과 완전히 떨어진 곳에
         // 순찰 경로와 같은 크기의 레이드 장소를 만든다. 레이드 장소 반대쪽 구석엔 귀환 포탈을 둔다.
         private void SetupRaid()
         {
             const float margin = 2f;
-            var raidCenter = new Vector3(patrolCenterX + 200f, 0f, patrolCenterZ); // 웨이브 지역과 겹치지 않도록 멀리 떨어뜨린다
+            var raidCenter = new Vector3(patrolCenterX + RaidOffsetX, 0f, patrolCenterZ); // 웨이브 지역과 겹치지 않도록 멀리 떨어뜨린다
 
             CreateFlatGround(raidCenter, patrolHalfWidth, patrolHalfDepth, new Color(0.16f, 0.12f, 0.2f));
 
@@ -149,7 +182,8 @@ namespace MRD.Game
             // 가장 가까운 빈 슬롯을 찾아주므로 여기서는 그대로 배율만 곱해서 좌표를 옮기면 된다.
             var pos = new Vector3(patrolCenterX + x * gridCellSize, 0f, patrolCenterZ + y * gridCellSize);
             unit.transform.position = pos;
-            var renderer = UnitVisual.AttachVisual(unit.transform, unit.Source.visualPrefab, new Color(0.3f, 0.5f, 1f), 0.9f);
+            // 몬스터 큐브(일반 0.8~보스 1.4)와 크기가 비슷해 보이도록 유닛도 넉넉하게 키운다.
+            var renderer = UnitVisual.AttachVisual(unit.transform, unit.Source.visualPrefab, new Color(0.3f, 0.5f, 1f), 1.2f);
 
             unit.gameObject.AddComponent<UnitMover>();
             var selectable = unit.gameObject.AddComponent<Selectable>();
@@ -240,7 +274,7 @@ namespace MRD.Game
 
             cam.orthographic = false;
             cam.fieldOfView = 50f;
-            cam.transform.position = lookAt + new Vector3(0f, span * 0.7f, -span * 1.1f);
+            cam.transform.position = lookAt + new Vector3(0f, span * 1.0f, -span * 0.5f);
             cam.transform.LookAt(lookAt);
         }
 
@@ -294,8 +328,6 @@ namespace MRD.Game
                 gemMidSummonTable = AssetDatabase.LoadAssetAtPath<GachaTable>("Assets/Data/Gacha/GemMidSummon.asset");
             if (gemAdvancedSummonTable == null)
                 gemAdvancedSummonTable = AssetDatabase.LoadAssetAtPath<GachaTable>("Assets/Data/Gacha/GemAdvancedSummon.asset");
-            if (fusionTestTarget == null)
-                fusionTestTarget = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Feline/WhiteTiger.asset");
         }
 #endif
     }

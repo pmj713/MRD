@@ -21,21 +21,28 @@ MonoBehaviour:
     attackPower: 100
     attackSpeed: 1.2
     criticalMultiplier: 1.8
-    attackRange: 13
+    attackRange: 2.5
+    isAreaAttack: 0
   activeSkill:
     skillName: 
     description: 
     skillType: 0
-    manaCost: 0
     cooldown: 0
+    activeEffectType: 0
+    activeEffectValue: 0
     triggerChancePercent: 0
+    triggerEffectType: 0
+    triggerEffectValue: 0
   passiveSkill:
-    skillName: 
-    description: 
-    skillType: 1
-    manaCost: 0
+    skillName: "\uBB34\uD615\uC758 \uC555\uBC15"
+    description: "\uD615\uCCB4 \uC5C6\uB294 \uD798\uC73C\uB85C \uC9D3\uB20C\uB7EC \uD655\uB960\uC801\uC73C\uB85C \uB300\uC0C1\uC758 \uBC29\uC5B4\uB825\uC744 \uAE4E\uB294\uB2E4."
+    skillType: 2
     cooldown: 0
-    triggerChancePercent: 0
+    activeEffectType: 0
+    activeEffectValue: 0
+    triggerChancePercent: 20
+    triggerEffectType: 1
+    triggerEffectValue: 8
   fusionRecipe:
     requiredCharacters:
     - {fileID: 11400000, guid: 496f7a40ee4a2d148991de21b94ad16f, type: 2}

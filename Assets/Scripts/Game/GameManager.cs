@@ -154,6 +154,9 @@ namespace MRD.Game
         /// <summary>보석을 지급한다 (랭크 미션 보상 등, 아직 랭크 미션 시스템은 없어 외부에서 직접 호출).</summary>
         public void GrantGems(int amount) => AddGems(amount);
 
+        /// <summary>골드가 충분하면 소모한다 (건물 강화 등, 소환/조합 흐름 밖에서 골드를 쓸 때 사용).</summary>
+        public bool TrySpendGold(int amount) => SpendGold(amount);
+
         /// <summary>
         /// 지정된 소환 테이블로 한 번 뽑는다. 재화가 부족하거나 해당 등급에 실제 유닛이 없으면 실패한다.
         /// 성공하면 재화를 차감하고 결과 캐릭터를 보유 목록에 추가한다.

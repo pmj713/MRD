@@ -37,8 +37,7 @@ namespace MRD.UI
         private CharacterDatabase _database;
 
         public void Initialize(GameManager game, SelectionController selectionController, CharacterDatabase database,
-            GachaTable goldSummon, GachaTable gemBasicSummon, GachaTable gemMidSummon, GachaTable gemAdvancedSummon,
-            CharacterData fusionTestTarget)
+            GachaTable goldSummon, GachaTable gemBasicSummon, GachaTable gemMidSummon, GachaTable gemAdvancedSummon)
         {
             _game = game;
             _database = database;
@@ -47,7 +46,7 @@ namespace MRD.UI
             var canvas = CreateCanvas();
 
             BuildTopBar(canvas.transform);
-            BuildBottomBar(canvas.transform, goldSummon, gemBasicSummon, gemMidSummon, gemAdvancedSummon, fusionTestTarget);
+            BuildBottomBar(canvas.transform, goldSummon, gemBasicSummon, gemMidSummon, gemAdvancedSummon);
             BuildUnitInfoPanel(canvas.transform);
             BuildGameOverPanel(canvas.transform);
 
@@ -196,15 +195,6 @@ namespace MRD.UI
             });
         }
 
-        private void OnFuseClicked(CharacterData target)
-        {
-            if (target == null) { ShowResult("조합 대상이 설정되지 않았습니다"); return; }
-
-            ShowResult(_game.TryFuseCharacter(target)
-                ? $"{target.characterName} 조합 성공!"
-                : "조합 실패 (재료/재화 부족)");
-        }
-
         private void ShowResult(string message)
         {
             _resultText.text = message;
@@ -227,18 +217,17 @@ namespace MRD.UI
         }
 
         private void BuildBottomBar(Transform parent, GachaTable goldSummon, GachaTable gemBasicSummon,
-            GachaTable gemMidSummon, GachaTable gemAdvancedSummon, CharacterData fusionTestTarget)
+            GachaTable gemMidSummon, GachaTable gemAdvancedSummon)
         {
             float y = 60f;
             float width = 160f;
             float gap = 10f;
-            float startX = -((width + gap) * 2f);
+            float startX = -((width + gap) * 1.5f);
 
             CreateButton(parent, "골드 소환 (100G)", startX, y, width, () => OnSummonClicked(goldSummon));
             CreateButton(parent, "보석 소환 하급 (1)", startX + (width + gap), y, width, () => OnSummonClicked(gemBasicSummon));
             CreateButton(parent, "보석 소환 중급 (3)", startX + (width + gap) * 2f, y, width, () => OnSummonClicked(gemMidSummon));
             CreateButton(parent, "보석 소환 고급 (5)", startX + (width + gap) * 3f, y, width, () => OnSummonClicked(gemAdvancedSummon));
-            CreateButton(parent, "제우스 조합", startX + (width + gap) * 4f, y, width, () => OnFuseClicked(fusionTestTarget));
 
             // 랭크 미션 등 정식 재화 획득 수단이 아직 없어서, 테스트용으로 재화를 바로 지급하는 버튼.
             CreateButton(parent, "[테스트] 골드 +1000", startX, y - 60f, width, () => _game.GrantGold(1000));

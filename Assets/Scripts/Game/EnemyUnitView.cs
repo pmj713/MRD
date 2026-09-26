@@ -28,7 +28,7 @@ namespace MRD.Game
 
         private void Update()
         {
-            if (_enemy == null || _enemy.IsDead) return;
+            if (_enemy == null || _enemy.IsDead || _enemy.IsStunned) return;
 
             _distanceTraveled += _speed * Time.deltaTime;
             if (_perimeter > 0f)

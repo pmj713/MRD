@@ -51,11 +51,10 @@ namespace MRD.EditorTools
                 ok &= ApproxLog("EffectiveStats.attackSpeed == 기본 스탯", unit.EffectiveStats.attackSpeed, whiteTiger.stats.attackSpeed);
 
                 bool usedSkill = unit.TryUseActiveSkill();
-                ok &= LogAndCheck("마나 부족 상태에서 스킬 사용 실패해야 함", !usedSkill, usedSkill.ToString());
+                ok &= LogAndCheck("쿨타임 준비된 상태에서 스킬 사용 성공해야 함", usedSkill, usedSkill.ToString());
 
-                unit.AddMana(whiteTiger.activeSkill.manaCost);
                 usedSkill = unit.TryUseActiveSkill();
-                ok &= LogAndCheck("마나 충전 후 스킬 사용 성공해야 함", usedSkill, usedSkill.ToString());
+                ok &= LogAndCheck("쿨타임이 도는 중에는 스킬 재사용 실패해야 함", !usedSkill, usedSkill.ToString());
             }
             finally
             {
@@ -144,15 +143,15 @@ namespace MRD.EditorTools
             foreach (var kv in countByRarity)
                 Debug.Log($"[SmokeTest]  - {kv.Key}: {kv.Value}개");
 
-            ok &= LogAndCheck("전체 에셋 40개", guids.Length == 40, guids.Length.ToString());
+            ok &= LogAndCheck("전체 에셋 43개", guids.Length == 43, guids.Length.ToString());
 
-            // 동물 로스터: 노말 10 / 매직 7 / 레어 7 / 유니크 7 / 전설 5 / 히든 4
+            // 동물 로스터(40) + 부엉이/토끼/다람쥐 조합 체인(3): 노말 10 / 매직 8 / 레어 8 / 유니크 8 / 전설 5 / 히든 4
             var expectedByRarity = new Dictionary<Rarity, int>
             {
                 { Rarity.Normal, 10 },
-                { Rarity.Magic, 7 },
-                { Rarity.Rare, 7 },
-                { Rarity.Unique, 7 },
+                { Rarity.Magic, 8 },
+                { Rarity.Rare, 8 },
+                { Rarity.Unique, 8 },
                 { Rarity.Legend, 5 },
                 { Rarity.Hidden, 4 },
             };
@@ -207,7 +206,6 @@ namespace MRD.EditorTools
                 float maxDamage = werewolfData.stats.attackPower * werewolfData.stats.criticalMultiplier;
                 ok &= LogAndCheck("평타 데미지가 기대 범위 내(무크리~크리)",
                     actualDamage >= minDamage - 0.01f && actualDamage <= maxDamage + 0.01f, actualDamage.ToString());
-                ok &= ApproxLog("평타 1회 후 마나 증가", werewolfUnit.CurrentMana, 10f);
 
                 // 죽을 때까지 반복 공격 -> OnDeath 발생 확인
                 for (int i = 0; i < 20 && !enemyUnit.IsDead; i++)
@@ -1066,30 +1064,28 @@ namespace MRD.EditorTools
 
             ok &= CheckFusionRecipe("Assets/Data/Characters/Canine/Wolf.asset", "늑대",
                 new[] { ("Assets/Data/Characters/Canine/Puppy.asset", "강아지"),
-                        ("Assets/Data/Characters/Canine/Puppy.asset", "강아지"),
                         ("Assets/Data/Characters/Canine/Puppy.asset", "강아지") }, 50);
             ok &= CheckFusionRecipe("Assets/Data/Characters/Canine/DireWolf.asset", "다이어울프",
                 new[] { ("Assets/Data/Characters/Canine/Wolf.asset", "늑대"),
-                        ("Assets/Data/Characters/Canine/Wolf.asset", "늑대"),
                         ("Assets/Data/Characters/Canine/Wolf.asset", "늑대") }, 100);
             ok &= CheckFusionRecipe("Assets/Data/Characters/Canine/Werewolf.asset", "웨어울프",
                 new[] { ("Assets/Data/Characters/Canine/DireWolf.asset", "다이어울프"),
                         ("Assets/Data/Characters/Canine/DireWolf.asset", "다이어울프"),
-                        ("Assets/Data/Characters/Canine/DireWolf.asset", "다이어울프") }, 200);
+                        ("Assets/Data/Characters/Canine/Wolf.asset", "늑대") }, 200);
             ok &= CheckFusionRecipe("Assets/Data/Characters/Canine/NineTailedFox.asset", "구미호",
                 new[] { ("Assets/Data/Characters/Canine/Werewolf.asset", "웨어울프"),
                         ("Assets/Data/Characters/Canine/Werewolf.asset", "웨어울프"),
-                        ("Assets/Data/Characters/Canine/Werewolf.asset", "웨어울프") }, 0);
+                        ("Assets/Data/Characters/Canine/DireWolf.asset", "다이어울프") }, 0);
 
             ok &= CheckFusionRecipe("Assets/Data/Characters/Feline/WhiteTiger.asset", "백호",
                 new[] { ("Assets/Data/Characters/Feline/Taotie.asset", "도철"),
                         ("Assets/Data/Characters/Feline/Taotie.asset", "도철"),
-                        ("Assets/Data/Characters/Feline/Taotie.asset", "도철") }, 0);
+                        ("Assets/Data/Characters/Turtle/Hundun.asset", "혼돈") }, 0);
 
             return ok;
         }
 
-        // 재료로 "같은 유닛 3마리"를 요구하는 조합(노멀 3개 -> 매직)이 GameManager를 통해 실제로 동작하는지 확인한다.
+        // 재료로 "같은 유닛 2마리"를 요구하는 조합(늑대: 강아지 2마리)이 GameManager를 통해 실제로 동작하는지 확인한다.
         private static bool CheckFuseSameMaterialTriple()
         {
             var puppy = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/Puppy.asset");
@@ -1102,22 +1098,22 @@ namespace MRD.EditorTools
                 var game = go.AddComponent<GameManager>();
                 game.Configure(3, 3, null, null, null, null);
 
+                bool fusedWithOne = false;
+                if (puppy != null && wolf != null)
+                {
+                    game.Inventory.Add(puppy, 1); // 1마리뿐이면 부족해야 한다
+                    fusedWithOne = game.TryFuseCharacter(wolf);
+                }
+                ok = LogAndCheck("같은 재료 1마리로는 조합 실패", !fusedWithOne, fusedWithOne.ToString());
+
                 bool fusedWithTwo = false;
                 if (puppy != null && wolf != null)
                 {
-                    game.Inventory.Add(puppy, 2); // 2마리뿐이면 부족해야 한다
+                    game.Inventory.Add(puppy, 1); // 총 2마리로 채움
+                    game.GrantGold(50);
                     fusedWithTwo = game.TryFuseCharacter(wolf);
                 }
-                ok = LogAndCheck("같은 재료 2마리로는 조합 실패", !fusedWithTwo, fusedWithTwo.ToString());
-
-                bool fusedWithThree = false;
-                if (puppy != null && wolf != null)
-                {
-                    game.Inventory.Add(puppy, 1); // 총 3마리로 채움
-                    game.GrantGold(50);
-                    fusedWithThree = game.TryFuseCharacter(wolf);
-                }
-                ok &= LogAndCheck("같은 재료 3마리 + 골드로 조합 성공", fusedWithThree, fusedWithThree.ToString());
+                ok &= LogAndCheck("같은 재료 2마리 + 골드로 조합 성공", fusedWithTwo, fusedWithTwo.ToString());
                 ok &= LogAndCheck("조합 후 강아지 재료 전부 소모", puppy == null || game.Inventory.GetCount(puppy) == 0,
                     puppy == null ? "asset missing" : game.Inventory.GetCount(puppy).ToString());
                 ok &= LogAndCheck("조합 결과 늑대가 보유 목록에 추가됨", wolf == null || game.Inventory.GetCount(wolf) == 1,
@@ -1169,7 +1165,7 @@ namespace MRD.EditorTools
             var nineTailedFox = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/NineTailedFox.asset");
 
             ok &= LogAndCheck("CharacterDatabase 로드", database != null, (database != null).ToString());
-            ok &= LogAndCheck("CharacterDatabase 전체 40개 등록", database != null && database.allCharacters.Count == 40,
+            ok &= LogAndCheck("CharacterDatabase 전체 43개 등록", database != null && database.allCharacters.Count == 43,
                 database?.allCharacters.Count.ToString() ?? "null");
             ok &= LogAndCheck("GoldSummon 테이블 로드", goldSummon != null, (goldSummon != null).ToString());
             ok &= LogAndCheck("GemMidSummon 테이블 로드", gemMidSummon != null, (gemMidSummon != null).ToString());
@@ -1228,14 +1224,17 @@ namespace MRD.EditorTools
                         game.Inventory.GetCount(summonedCharacter).ToString());
                 }
 
-                // 조합: 구미호는 웨어울프 3마리 + 보석 100이 필요하다.
+                // 조합: 구미호는 웨어울프 2마리 + 다이어울프 1마리 + 보석 100이 필요하다.
+                var direWolfData = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/DireWolf.asset");
+
                 bool fusedWithoutMaterial = game.TryFuseCharacter(nineTailedFoxData);
                 ok &= LogAndCheck("재료 없이 조합 시도하면 실패", !fusedWithoutMaterial, fusedWithoutMaterial.ToString());
 
-                game.Inventory.Add(werewolfData, 3); // 웨어울프 3마리를 보유하고 있다고 가정
+                game.Inventory.Add(werewolfData, 2);
+                game.Inventory.Add(direWolfData, 1); // 구미호 조합 재료(웨어울프2+다이어울프1)를 보유하고 있다고 가정
                 bool fusedWithoutGems = game.TryFuseCharacter(nineTailedFoxData);
                 ok &= LogAndCheck("보석 없이 조합 시도하면 실패(재료는 소모 안 됨)", !fusedWithoutGems, fusedWithoutGems.ToString());
-                ok &= LogAndCheck("실패한 조합은 재료를 소모하지 않음", game.Inventory.GetCount(werewolfData) == 3, game.Inventory.GetCount(werewolfData).ToString());
+                ok &= LogAndCheck("실패한 조합은 재료를 소모하지 않음", game.Inventory.GetCount(werewolfData) == 2, game.Inventory.GetCount(werewolfData).ToString());
 
                 game.GrantGems(100);
                 bool fused = game.TryFuseCharacter(nineTailedFoxData);
@@ -1310,10 +1309,22 @@ namespace MRD.EditorTools
         // 조합 재료로 소모된 유닛이 필드에 배치돼 있었다면 화면(격자)에서도 사라지는지 검증한다.
         // 재료 요구량(3)보다 1마리 많은 4마리를 필드에 두고, 그중 특정 유닛을 지정해서 조합하면
         // 그 유닛이 반드시(다른 동일 유닛보다 우선해서) 사라지는지도 함께 확인한다.
+        // 실제 조합표는 이제 재료 3종이 전부 다르게 섞여 있어서 "같은 재료 여러 마리 중 하나를
+        // 우선 소모" 상황을 데이터로는 재현할 수 없다 - 그 로직만 따로 검증하기 위해 강아지 3마리를
+        // 요구하는 합성 조합 데이터를 테스트 전용으로 만들어서 쓴다.
         private static bool CheckFuseRemovesFieldMaterials()
         {
             var puppy = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/Puppy.asset");
-            var wolf = AssetDatabase.LoadAssetAtPath<CharacterData>("Assets/Data/Characters/Canine/Wolf.asset");
+
+            var syntheticTarget = ScriptableObject.CreateInstance<CharacterData>();
+            syntheticTarget.characterName = "SmokeTest_Synthetic";
+            syntheticTarget.rarity = Rarity.Magic;
+            syntheticTarget.fusionRecipe = new FusionRecipe
+            {
+                requiredCharacters = new[] { puppy, puppy, puppy },
+                goldCost = 50,
+                gemCost = 0,
+            };
 
             var go = new GameObject("SmokeTest_FuseFieldRemoval");
             bool ok;
@@ -1329,7 +1340,7 @@ namespace MRD.EditorTools
                 game.Inventory.Add(puppy, 4);
                 game.GrantGold(50);
 
-                bool fused = game.TryFuseCharacter(wolf, unitA);
+                bool fused = game.TryFuseCharacter(syntheticTarget, unitA);
                 ok = LogAndCheck("지정 유닛을 재료로 조합 성공", fused, fused.ToString());
                 ok &= LogAndCheck("지정했던 유닛(unitA)이 화면(필드)에서 파괴됨", unitA == null, (unitA == null).ToString());
 
@@ -1345,6 +1356,7 @@ namespace MRD.EditorTools
             finally
             {
                 Object.DestroyImmediate(go);
+                Object.DestroyImmediate(syntheticTarget);
             }
 
             return ok;

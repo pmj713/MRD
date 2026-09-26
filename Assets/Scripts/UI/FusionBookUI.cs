@@ -45,7 +45,7 @@ namespace MRD.UI
 
         private void Update()
         {
-            if (Input.GetKeyDown(toggleKey))
+            if (Input.GetKeyDown(toggleKey) || Input.GetKeyDown(KeyCode.Escape))
                 _panelRoot.SetActive(!_panelRoot.activeSelf);
         }
 
@@ -118,7 +118,7 @@ namespace MRD.UI
             var mainPanel = CreateFixedPanel(_panelRoot.transform, new Color(0.1f, 0.1f, 0.13f, 0.97f),
                 new Vector2(900f, 600f), Vector2.zero);
 
-            var title = CreateText(mainPanel.transform, "조합서 (R로 닫기)", new Vector2(0.5f, 1f), new Vector2(0f, -16f), 22);
+            var title = CreateText(mainPanel.transform, "조합서 (R 또는 ESC로 닫기)", new Vector2(0.5f, 1f), new Vector2(0f, -16f), 22);
             title.alignment = TextAnchor.UpperCenter;
 
             var leftList = CreateVerticalList(mainPanel.transform, new Vector2(16f, -56f), new Vector2(200f, 520f));

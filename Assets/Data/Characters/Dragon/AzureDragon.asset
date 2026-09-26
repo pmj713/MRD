@@ -21,25 +21,32 @@ MonoBehaviour:
     attackPower: 150
     attackSpeed: 1.3
     criticalMultiplier: 2
-    attackRange: 13
+    attackRange: 2.5
+    isAreaAttack: 0
   activeSkill:
     skillName: "\uD3ED\uD48D \uBE0C\uB808\uC2A4"
     description: "\uC804\uBC29 \uC9C1\uC120 \uBC94\uC704\uC5D0 \uAC15\uB825\uD55C \uB1CC\uC804\uC758 \uC228\uACB0\uC744 \uB0B4\uBFDC\uB294\uB2E4."
     skillType: 0
-    manaCost: 200
     cooldown: 30
+    activeEffectType: 0
+    activeEffectValue: 0
     triggerChancePercent: 0
+    triggerEffectType: 0
+    triggerEffectValue: 0
   passiveSkill:
     skillName: "\uC6A9\uC758 \uAC00\uD638"
     description: "\uD3C9\uD0C0 \uC801\uC911 \uC2DC \uC77C\uC815 \uD655\uB960\uB85C \uBC29\uC5B4\uB825\uC744 \uBB34\uC2DC\uD558\uB294 \uBC88\uAC1C \uCD94\uAC00 \uD0C0\uACA9\uC744 \uAC00\uD55C\uB2E4."
     skillType: 2
-    manaCost: 0
     cooldown: 0
+    activeEffectType: 0
+    activeEffectValue: 0
     triggerChancePercent: 15
+    triggerEffectType: 0
+    triggerEffectValue: 0
   fusionRecipe:
     requiredCharacters:
     - {fileID: 11400000, guid: 8106d874ecb2e5447a4083921a14183b, type: 2}
     - {fileID: 11400000, guid: 8106d874ecb2e5447a4083921a14183b, type: 2}
-    - {fileID: 11400000, guid: 8106d874ecb2e5447a4083921a14183b, type: 2}
+    - {fileID: 11400000, guid: 4cf5535f1dd8e654b9f2f5f10c423148, type: 2}
     goldCost: 0
     gemCost: 300

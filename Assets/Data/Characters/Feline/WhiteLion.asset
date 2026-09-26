@@ -21,25 +21,32 @@ MonoBehaviour:
     attackPower: 85
     attackSpeed: 1.15
     criticalMultiplier: 1.6
-    attackRange: 13
+    attackRange: 2.5
+    isAreaAttack: 0
   activeSkill:
     skillName: 
     description: 
     skillType: 0
-    manaCost: 0
     cooldown: 0
+    activeEffectType: 0
+    activeEffectValue: 0
     triggerChancePercent: 0
+    triggerEffectType: 0
+    triggerEffectValue: 0
   passiveSkill:
     skillName: 
     description: 
     skillType: 1
-    manaCost: 0
     cooldown: 0
+    activeEffectType: 0
+    activeEffectValue: 0
     triggerChancePercent: 0
+    triggerEffectType: 0
+    triggerEffectValue: 0
   fusionRecipe:
     requiredCharacters:
     - {fileID: 11400000, guid: 402c4b69cf1e66b4d80d01e73569fe70, type: 2}
     - {fileID: 11400000, guid: 402c4b69cf1e66b4d80d01e73569fe70, type: 2}
-    - {fileID: 11400000, guid: 402c4b69cf1e66b4d80d01e73569fe70, type: 2}
+    - {fileID: 11400000, guid: 9cfc8c0f1de350c4f92f704f583d3216, type: 2}
     goldCost: 200
     gemCost: 0

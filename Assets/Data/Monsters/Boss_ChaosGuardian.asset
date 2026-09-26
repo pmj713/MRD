@@ -11,11 +11,11 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f23615a385fd4653a2f14b9068fb9c80, type: 3}
   m_Name: Boss_ChaosGuardian
-  m_EditorClassIdentifier:
-  monsterName: 혼돈의 파수꾼
+  m_EditorClassIdentifier: 
+  monsterName: "\uD63C\uB3C8\uC758 \uD30C\uC218\uAFBC"
   baseHealth: 3000
   baseArmor: 15
   healthGrowthPerRound: 1.05
-  moveSpeed: 5
+  moveSpeed: 8
   goldReward: 150
   isBoss: 1

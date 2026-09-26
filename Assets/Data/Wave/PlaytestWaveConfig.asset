@@ -11,13 +11,13 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 803ac327c674443a87e86d4fdfb0c94b, type: 3}
   m_Name: PlaytestWaveConfig
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   totalRounds: 10
   monstersPerRound: 3
   earlyRoundThreshold: 10
-  earlyRoundDuration: 15
-  lateRoundDuration: 15
+  earlyRoundDuration: 9
+  lateRoundDuration: 9
   leftBossInterval: 10
   rightBossOffset: 3
-  mandatoryClearRounds: []
+  mandatoryClearRounds: 
   maxAliveMonsters: 100
