@@ -185,9 +185,14 @@ namespace MRD.Game
             // 몬스터 큐브(일반 0.8~보스 1.4)와 크기가 비슷해 보이도록 유닛도 넉넉하게 키운다.
             var renderer = UnitVisual.AttachVisual(unit.transform, unit.Source.visualPrefab, new Color(0.3f, 0.5f, 1f), 1.2f);
 
-            unit.gameObject.AddComponent<UnitMover>();
+            var mover = unit.gameObject.AddComponent<UnitMover>();
             var selectable = unit.gameObject.AddComponent<Selectable>();
             selectable.Initialize(unit, renderer);
+
+            // 리깅된 모델(Animator 있음)만 이동 중에만 걷기 애니메이션이 나오도록 동기화한다.
+            var animator = unit.GetComponentInChildren<Animator>();
+            if (animator != null)
+                unit.gameObject.AddComponent<UnitAnimatorSync>().Initialize(animator, mover);
         }
 
         private void HandleMonsterSpawned(EnemyUnit enemy)

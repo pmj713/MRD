@@ -15,7 +15,7 @@ MonoBehaviour:
   characterName: "\uD574\uD0DC"
   flavorText: "\uC633\uACE0 \uADF8\uB984\uC744 \uAC00\uB9B4 \uC904 \uC544\uB294 \uC804\uC124\uC758 \uC218\uD638\uC218. \uC0B0\uC608\uB4E4\uC774 \uD798\uC744 \uD569\uCCD0 \uC815\uC758\uB97C \uC544\uB294 \uC2E0\uC218\uB85C \uAC70\uB4ED\uB0AC\uB2E4."
   portrait: {fileID: 0}
-  visualPrefab: {fileID: 0}
+  visualPrefab: {fileID: 1727965322739673214, guid: 15a2e80ab4763e74ab2cdb8c0b325b5c, type: 3}
   rarity: 2
   stats:
     attackPower: 50
