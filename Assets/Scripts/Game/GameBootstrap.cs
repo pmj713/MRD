@@ -45,6 +45,12 @@ namespace MRD.Game
         [SerializeField] private float patrolCenterX = 0f;
         [SerializeField] private float patrolCenterZ = 3f;
 
+        [Header("배경 (비워두면 자동 로드, 없으면 임시 평면 바닥을 깐다)")]
+        [SerializeField] private GameObject islandModel; // 윗면이 Y=0, 중심이 원점에 오도록 맞춰둔 운무 고원 섬 본체
+        [SerializeField] private Texture2D groundTexture; // 섬 윗면을 덮는 반복 풀밭 텍스처
+        [SerializeField] private Texture2D pathTexture; // 순찰 경로를 흙길로 표시하는 반복 텍스처
+        [SerializeField] private float groundTileSize = 6f; // 텍스처 한 장이 덮는 바닥 크기(월드 단위) - 작을수록 무늬가 잘다
+
         // 보스 레이드 장소를 웨이브 지역에서 X축으로 얼마나 멀리 떨어뜨릴지 (SetupRaid, 미니맵 범위 계산에서 함께 사용).
         private const float RaidOffsetX = 200f;
 
@@ -232,18 +238,21 @@ namespace MRD.Game
             float zMin = patrolCenterZ - patrolHalfDepth;
             float zMax = patrolCenterZ + patrolHalfDepth;
 
-            const float thickness = 0.8f; // 일반 몬스터 큐브 크기와 맞춘 값
-            const float height = 0.1f; // 바닥에 거의 붙어있는 얇은 두께
+            // 흙길 텍스처가 있으면 몬스터가 지나다니는 넓은 흙길로, 없으면 예전처럼 노란 테두리로 그린다.
+            bool dirt = pathTexture != null;
+            float thickness = dirt ? 2.4f : 0.8f; // 노란 테두리는 일반 몬스터 큐브 크기와 맞춘 값
+            float height = dirt ? 0.02f : 0.1f; // 바닥에 거의 붙어있는 얇은 두께
+            float y = dirt ? 0.03f : height / 2f; // 흙길은 풀밭 바닥(0.02) 바로 위에 깐다
             var color = new Color(1f, 0.9f, 0.15f); // 바닥/유닛 색과 구분되는 밝은 노란색
 
             // 네 변의 길이에 두께만큼을 더해서 모서리에서 서로 겹치게 만들어, 이음매에 빈틈이 생기지 않게 한다.
-            CreatePathSegment(new Vector3((xMin + xMax) / 2f, height / 2f, zMin), new Vector3(xMax - xMin + thickness, height, thickness), color);
-            CreatePathSegment(new Vector3((xMin + xMax) / 2f, height / 2f, zMax), new Vector3(xMax - xMin + thickness, height, thickness), color);
-            CreatePathSegment(new Vector3(xMin, height / 2f, (zMin + zMax) / 2f), new Vector3(thickness, height, zMax - zMin + thickness), color);
-            CreatePathSegment(new Vector3(xMax, height / 2f, (zMin + zMax) / 2f), new Vector3(thickness, height, zMax - zMin + thickness), color);
+            CreatePathSegment(new Vector3((xMin + xMax) / 2f, y, zMin), new Vector3(xMax - xMin + thickness, height, thickness), color);
+            CreatePathSegment(new Vector3((xMin + xMax) / 2f, y, zMax), new Vector3(xMax - xMin + thickness, height, thickness), color);
+            CreatePathSegment(new Vector3(xMin, y, (zMin + zMax) / 2f), new Vector3(thickness, height, zMax - zMin + thickness), color);
+            CreatePathSegment(new Vector3(xMax, y, (zMin + zMax) / 2f), new Vector3(thickness, height, zMax - zMin + thickness), color);
         }
 
-        private static void CreatePathSegment(Vector3 position, Vector3 scale, Color color)
+        private void CreatePathSegment(Vector3 position, Vector3 scale, Color color)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = "PatrolPathSegment";
@@ -254,8 +263,26 @@ namespace MRD.Game
             if (collider != null) Object.Destroy(collider); // 선택 판정은 화면좌표 기반이라 콜라이더가 필요 없다
 
             var renderer = go.GetComponent<Renderer>();
+            if (pathTexture != null)
+            {
+                renderer.material = CreateTiledMaterial(pathTexture, scale.x, scale.z);
+                return;
+            }
             var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
             renderer.material = new Material(shader) { color = color };
+        }
+
+        // 크기가 width x depth인 면에 텍스처가 groundTileSize마다 한 번씩 반복되도록 타일링한 조명 받는 재질.
+        private Material CreateTiledMaterial(Texture2D texture, float width, float depth)
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            var material = new Material(shader)
+            {
+                mainTexture = texture,
+                mainTextureScale = new Vector2(width / groundTileSize, depth / groundTileSize),
+            };
+            material.SetFloat("_Smoothness", 0f); // 흙/풀이 번들거리지 않게
+            return material;
         }
 
         private static void HandleRoundStarted(int round, bool isLeftBoss, bool isRightBoss)
@@ -269,7 +296,10 @@ namespace MRD.Game
         // 순찰 경로 크기를 Inspector에서 바꿔도 카메라가 항상 알아서 다시 맞춰진다.
         private void SetupCamera()
         {
-            CreateGround();
+            if (islandModel != null)
+                CreateIsland();
+            else
+                CreateGround();
 
             var cam = Camera.main;
             if (cam == null) return;
@@ -296,6 +326,26 @@ namespace MRD.Game
             renderer.material = new Material(shader) { color = new Color(0.22f, 0.28f, 0.22f) };
         }
 
+        // 순찰 경로 중심에 섬 본체를 놓는다. 모델 자체를 윗면 Y=0, 순찰 경로보다 사방 6 넓은 40x36으로 맞춰뒀다.
+        private void CreateIsland()
+        {
+            var center = new Vector3(patrolCenterX, 0f, patrolCenterZ);
+            var island = Instantiate(islandModel, center, Quaternion.identity);
+            island.name = "Island";
+            if (groundTexture == null) return;
+
+            // 섬 윗면은 텍스처 한 장이 40x36 전체에 늘어나 유닛에 비해 무늬가 너무 크다.
+            // 모델에서 윗면 안쪽을 살짝 내려뒀으니, 그 위를 잘게 반복되는 풀밭 평면으로 덮는다 (가장자리는 섬 풀 테두리 밑으로 들어간다).
+            const float width = 39f, depth = 35f;
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            ground.name = "IslandGround";
+            ground.transform.position = center + new Vector3(0f, 0.02f, 0f);
+            ground.transform.localScale = new Vector3(width / 10f, 1f, depth / 10f); // 기본 10x10 평면 기준 스케일 환산
+            var collider = ground.GetComponent<Collider>();
+            if (collider != null) Destroy(collider);
+            ground.GetComponent<Renderer>().material = CreateTiledMaterial(groundTexture, width, depth);
+        }
+
 #if UNITY_EDITOR
         private void AutoLoadMissingReferences()
         {
@@ -307,6 +357,12 @@ namespace MRD.Game
                 bossTemplate = AssetDatabase.LoadAssetAtPath<MonsterData>("Assets/Data/Monsters/Boss_ChaosGuardian.asset");
             if (raidBossTemplate == null)
                 raidBossTemplate = AssetDatabase.LoadAssetAtPath<MonsterData>("Assets/Data/Monsters/RaidBoss_AncientColossus.asset");
+            if (islandModel == null)
+                islandModel = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/Environment/IslandBase.glb");
+            if (groundTexture == null)
+                groundTexture = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/Environment/Grass.png");
+            if (pathTexture == null)
+                pathTexture = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/Environment/Dirt.png");
 
             if (starterRoster.Count == 0)
             {
